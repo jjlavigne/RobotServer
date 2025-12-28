@@ -17,8 +17,8 @@ target_sources(sensor_data_processors
     FILE_SET myHeaders
     TYPE HEADERS
     BASE_DIRS
-      include
+      .
     FILES
-      include/SensorDataProcessorsInterface.h
-      include/StreamProcessor.h
+      SensorDataProcessorsInterface.h
+      StreamProcessor.h
 )
