@@ -1,3 +1,5 @@
+#pragma once
+
 #include "SensorDataProcessorInterface.h"
 
 class StreamProcessor : public SensorDataProcessorInterface{

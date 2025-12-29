@@ -1,3 +1,5 @@
+#pragma once
+
 #include "SensorDataDispatcherInterface.h"
 #include "SensorDataProcessorInterface.h"
 #include <vector>
@@ -5,10 +7,9 @@
 
 class SensorDataDispatcher : public SensorDataDispatchInterface{
     public: 
-    
-    SensorDataDispatcher(std::vector<std::shared_ptr<SensorDataProcessorInterface>> processors) : processors_(std::move(processors)) {}
+    SensorDataDispatcher(std::vector<std::shared_ptr<SensorDataProcessorInterface>> processors);
 
-    void enqueueData(std::shared_ptr<SensorData> data);
+    void enqueueData(std::shared_ptr<SensorData> data) override;
 
     private:
     

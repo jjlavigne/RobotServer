@@ -13,6 +13,7 @@ target_link_libraries(sensor_data_dispatcher_test
   PRIVATE
     sensor_data_processors
     GTest::gtest
+    GTest::gmock
     GTest::gtest_main
 )
 
