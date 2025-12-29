@@ -19,6 +19,6 @@ target_sources(sensor_data_processors
     BASE_DIRS
       .
     FILES
-      SensorDataProcessorsInterface.h
+      SensorDataProcessorInterface.h
       StreamProcessor.h
 )

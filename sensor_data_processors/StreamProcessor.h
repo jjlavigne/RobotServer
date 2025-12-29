@@ -1,7 +1,7 @@
-#include "SensorDataProcessorsInterface.h"
+#include "SensorDataProcessorInterface.h"
 
-class StreamProcessor : public SensorDataProcessorsInterface{
+class StreamProcessor : public SensorDataProcessorInterface{
     public: 
-    void process(std::shared_ptr<SensorData> data);
+    void process(std::shared_ptr<SensorData> data) override;
     
 };
