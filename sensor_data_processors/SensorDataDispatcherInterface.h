@@ -5,9 +5,9 @@
 
 struct SensorDataDispatch{};
 
-class SensorDataDispatchInterface {
+class SensorDataDispatcherInterface {
 public:
-  virtual ~SensorDataDispatchInterface() = default;
+  virtual ~SensorDataDispatcherInterface() = default;
 
   virtual void enqueueData(std::shared_ptr<SensorData> data) = 0;
 };

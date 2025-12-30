@@ -3,6 +3,13 @@
 #include <memory>
 #include <optional>
 
+struct UserInputData{
+  bool forward = false;
+  bool backward = false;
+  bool left = false;
+  bool right = false; 
+};
+
 struct SensorData{
 };
 

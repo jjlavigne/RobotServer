@@ -5,7 +5,7 @@
 #include <vector>
 #include <memory>
 
-class SensorDataDispatcher : public SensorDataDispatchInterface{
+class SensorDataDispatcher : public SensorDataDispatcherInterface{
     public: 
     SensorDataDispatcher(std::vector<std::shared_ptr<SensorDataProcessorInterface>> processors);
 
