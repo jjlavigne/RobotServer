@@ -38,6 +38,7 @@ target_sources(sensor_data_processors
    SensorDataProviderInterface.cpp
    UserInputProvider.cpp
    SensorDataManager.cpp
+   UserInputProcessor.cpp
 
   PUBLIC
     FILE_SET myHeaders
@@ -52,4 +53,5 @@ target_sources(sensor_data_processors
       SensorDataProviderInterface.h
       UserInputProvider.h
       SensorDataManager.h
+      UserInputProcessor.h
 )

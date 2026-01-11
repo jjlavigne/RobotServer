@@ -3,13 +3,16 @@
 #include "SensorDataManager.h"
 #include "SensorDataDispatcher.h"
 #include "UserInputProvider.h"
+#include "UserInputProcessor.h"
 
 
 int main() {
     std::cout << "Hello, Robot Server!" << std::endl;
     std::vector<std::shared_ptr<SensorDataProcessorInterface>> processors;
+    auto processor = std::make_shared<UserInputProcessor>();
+    processors.push_back(processor);
     auto dispatcher = std::make_shared<SensorDataDispatcher>(processors);
-    
+
     std::vector<std::shared_ptr<SensorDataProviderInterface>> providers;
     auto inputProvider = std::make_shared<UserInputProvider>(dispatcher);
     providers.push_back(inputProvider);
@@ -17,6 +20,6 @@ int main() {
     SensorDataManager sensorDataManager(dispatcher, providers);
     sensorDataManager.start();
     std::cout << "Bye robot Server!" << std::endl;
-
+    
     return 0;
 }

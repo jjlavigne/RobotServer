@@ -5,10 +5,10 @@
 
 class UserInputProvider : public SensorDataProviderInterface{
 public: 
-    UserInputProvider(std::shared_ptr<SensorDataDispatcherInterface> provider) : provider_(provider) {};
+    UserInputProvider(std::shared_ptr<SensorDataDispatcherInterface> dispatcher) : dispatcher_(std::move(dispatcher)) {}
     virtual ~UserInputProvider() override = default;
     void start() override;
     void stop() override;
 private:
-    std::shared_ptr<SensorDataDispatcherInterface> provider_;
+    std::shared_ptr<SensorDataDispatcherInterface> dispatcher_;
 };

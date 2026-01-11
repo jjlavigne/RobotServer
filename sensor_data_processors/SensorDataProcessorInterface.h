@@ -11,6 +11,7 @@ struct UserInputData{
 };
 
 struct SensorData{
+  std::optional<UserInputData> userInput;
 };
 
 class SensorDataProcessorInterface {
