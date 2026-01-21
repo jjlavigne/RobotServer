@@ -1,0 +1,18 @@
+{
+    "name": "Robot Server Dev",
+    "image": "blavigne0/robot-dev:v1",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.cpptools",
+                "ms-python.python"
+            ]
+        }
+    },
+    // Keep the container running
+    "overrideCommand": true,
+    
+    "workspaceMount": "source=${localWorkspaceFolder},target=/root/code/RobotServer,type=bind",
+    "workspaceFolder": "/root/code/RobotServer",
+    "remoteUser": "root"
+}
