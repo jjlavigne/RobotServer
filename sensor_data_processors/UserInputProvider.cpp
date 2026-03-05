@@ -51,7 +51,6 @@ void UserInputProvider::start() {
     }
 
     // 3. Main Loop Flag
-    bool isRunning = true;
     SDL_Event event;
 
     std::cout << "Controller started. Press W, A, S, D to drive. Close window to quit." << std::endl;
@@ -64,20 +63,16 @@ void UserInputProvider::start() {
     sensorData->userInput.value().left = false;
     sensorData->userInput.value().right = false;
 
+    isRunning = true;
+
     // bool wasLedOn = false;
 
     // 4. The Event Loop
     while (isRunning) {
         // Poll for events (keyboard, mouse, window close, etc.)
-        while (SDL_PollEvent(&event) != 0) {
-            
-            // Handle Quit (Esc button on window)
-            if (event.type == SDL_QUIT) {
-                isRunning = false;
-            }
-            
+        while (SDL_PollEvent(&event) != 0) {       
             // Handle Key Pressed Down
-            else if (event.type == SDL_KEYDOWN) {
+            if (event.type == SDL_KEYDOWN) {
                 // 'repeat' checks if this is a hold-down repeat. 
                 // We usually ignore repeats for robot logic to avoid spamming commands.
                if (event.key.repeat == 0) {
@@ -134,5 +129,5 @@ void UserInputProvider::start() {
 }
 
 void UserInputProvider::stop() {
-    SDL_Quit();
+    isRunning = false;
 }

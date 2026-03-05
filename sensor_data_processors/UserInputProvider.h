@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+
 #include "SensorDataProviderInterface.h"
 #include "SensorDataDispatcherInterface.h"
 
@@ -11,4 +13,5 @@ public:
     void stop() override;
 private:
     std::shared_ptr<SensorDataDispatcherInterface> dispatcher_;
+    std::atomic<bool> isRunning{false};
 };

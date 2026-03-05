@@ -4,6 +4,7 @@
 #include "SensorDataDispatcherInterface.h"
 #include <vector>
 #include <memory>
+#include <thread>
 
 class SensorDataManager {
     public:
@@ -16,5 +17,5 @@ class SensorDataManager {
 
     std::shared_ptr<SensorDataDispatcherInterface> dispatcher_;
     std::vector<std::shared_ptr<SensorDataProviderInterface>> providers_;
-
+    std::vector<std::thread> workerThreads_;
 };

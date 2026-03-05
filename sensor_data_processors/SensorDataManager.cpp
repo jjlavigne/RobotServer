@@ -6,6 +6,16 @@ SensorDataManager::SensorDataManager(std::shared_ptr<SensorDataDispatcherInterfa
 void SensorDataManager::start(){
 
     for (auto& provider : providers_) {
-        provider->start();
+        std::thread worker([&provider]() { provider->start(); });
+        workerThreads_.push_back(std::move(worker));
     }
-};
+}
+void SensorDataManager::stop(){
+    for (auto& provider : providers_) {
+        provider->stop();
+    }
+    for (auto& worker : workerThreads_) {
+        worker.join();
+    }
+}
+

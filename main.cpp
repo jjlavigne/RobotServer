@@ -1,4 +1,5 @@
 #include <iostream>
+#include <ncurses.h>
 #include "StreamProcessor.h"
 #include "SensorDataManager.h"
 #include "SensorDataDispatcher.h"
@@ -19,7 +20,20 @@ int main() {
 
     SensorDataManager sensorDataManager(dispatcher, providers);
     sensorDataManager.start();
+    
+    char input;
+    std::cin >> input;
+    while (input != 'q') {
+        std::cin >> input;
+    }
+
+    sensorDataManager.stop();
+
     std::cout << "Bye robot Server!" << std::endl;
+
+    // TODO: write code that blocks and waits for input to end the program
+    // when key is pressed, call sensorDataMAnager.stop
+
     
     return 0;
 }
