@@ -5,6 +5,7 @@
 #include "SensorDataDispatcher.h"
 #include "UserInputProvider.h"
 #include "UserInputProcessor.h"
+#include "RemoteWebcamProvider.h"
 
 
 int main() {
@@ -16,7 +17,9 @@ int main() {
 
     std::vector<std::shared_ptr<SensorDataProviderInterface>> providers;
     auto inputProvider = std::make_shared<UserInputProvider>(dispatcher);
+    auto remoteWebcamProvider = std::make_shared<RemoteWebcamProvider>(dispatcher);
     providers.push_back(inputProvider);
+    providers.push_back(remoteWebcamProvider);
 
     SensorDataManager sensorDataManager(dispatcher, providers);
     sensorDataManager.start();
