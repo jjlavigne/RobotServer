@@ -4,10 +4,12 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 #include <cstring>
 #include <thread>
 #include <SDL2/SDL.h>
 #include "SensorDataProcessorInterface.h"
+
 
 void RemoteWebcamProvider::start() {
     std::cout << "start entered" << std::endl;
@@ -33,12 +35,24 @@ void RemoteWebcamProvider::start() {
 
     char buffer[1024];
     while (true) {
-        // recvfrom blocks until a packet arrives
-        ssize_t n = recvfrom(sockfd, buffer, sizeof(buffer) - 1, 0, nullptr, nullptr);
+        // Clear the buffer with zeros before every receive
+        std::memset(buffer, 0, sizeof(buffer));
+
+        struct sockaddr_in clientaddr;
+        socklen_t len = sizeof(clientaddr);
+        
+        ssize_t n = recvfrom(sockfd, buffer, sizeof(buffer) - 1, 0, (struct sockaddr *)&clientaddr, &len);
         
         if (n > 0) {
-            buffer[n] = '\0'; // Null-terminate the string
-            std::cout << "Server received: " << buffer << std::endl;
+            char senderIP[INET_ADDRSTRLEN];
+            inet_ntop(AF_INET, &(clientaddr.sin_addr), senderIP, INET_ADDRSTRLEN);
+            
+            // Only process if it's coming from the Pi (e.g., 192.168.4.X)
+            if (strstr(senderIP, "192.168.4.") != NULL) {
+                std::cout << "Valid message from PI (" << senderIP << "): " << buffer << std::endl;
+            } else {
+                std::cout << "Ignoring junk from: " << senderIP << std::endl;
+            }
         }
     }
 
