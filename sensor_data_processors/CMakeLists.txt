@@ -40,6 +40,7 @@ target_sources(sensor_data_processors
    SensorDataManager.cpp
    UserInputProcessor.cpp
    RemoteWebcamProvider.cpp
+   SimulatedWebcamSender.cpp
 
   PUBLIC
     FILE_SET myHeaders
@@ -56,4 +57,5 @@ target_sources(sensor_data_processors
       SensorDataManager.h
       UserInputProcessor.h
       RemoteWebcamProvider.h
+      SimulatedWebcamSender.h
 )

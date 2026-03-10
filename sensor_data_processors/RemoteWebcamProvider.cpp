@@ -1,64 +1,70 @@
 #include "RemoteWebcamProvider.h"
 #include <iostream>
-#include <vector>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
-#include <arpa/inet.h>
 #include <cstring>
-#include <thread>
-#include <SDL2/SDL.h>
-#include "SensorDataProcessorInterface.h"
 
+RemoteWebcamProvider::RemoteWebcamProvider(std::shared_ptr<SensorDataDispatcher> dispatcher) 
+    : dispatcher_(dispatcher), sockfd_(-1), running_(false) {}
+
+RemoteWebcamProvider::~RemoteWebcamProvider() {
+    stop();
+}
 
 void RemoteWebcamProvider::start() {
-    std::cout << "start entered" << std::endl;
-    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockfd < 0) {
+    if (running_) return;
+
+    sockfd_ = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd_ < 0) {
         perror("Socket creation failed");
         return;
     }
+
+    // Set a timeout so recvfrom doesn't block forever, allowing clean shutdown
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = 100000; // 100ms
+    setsockopt(sockfd_, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
     struct sockaddr_in servaddr;
     std::memset(&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = INADDR_ANY; 
-    servaddr.sin_port = htons(9999); // Ensure this matches the Python port
+    servaddr.sin_port = htons(9999);
 
-    if (bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
+    if (bind(sockfd_, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
         perror("Bind failed");
-        close(sockfd);
+        close(sockfd_);
         return;
     }
 
-    std::cout << "Waiting for messages..." << std::endl;
-
-    char buffer[1024];
-    while (true) {
-        // Clear the buffer with zeros before every receive
-        std::memset(buffer, 0, sizeof(buffer));
-
-        struct sockaddr_in clientaddr;
-        socklen_t len = sizeof(clientaddr);
-        
-        ssize_t n = recvfrom(sockfd, buffer, sizeof(buffer) - 1, 0, (struct sockaddr *)&clientaddr, &len);
-        
-        if (n > 0) {
-            char senderIP[INET_ADDRSTRLEN];
-            inet_ntop(AF_INET, &(clientaddr.sin_addr), senderIP, INET_ADDRSTRLEN);
-            
-            // Only process if it's coming from the Pi (e.g., 192.168.4.X)
-            if (strstr(senderIP, "192.168.4.") != NULL) {
-                std::cout << "Valid message from PI (" << senderIP << "): " << buffer << std::endl;
-            } else {
-                std::cout << "Ignoring junk from: " << senderIP << std::endl;
-            }
-        }
-    }
-
-    close(sockfd);
+    running_ = true;
+    worker_thread_ = std::thread(&RemoteWebcamProvider::receiveLoop, this);
+    std::cout << "RemoteWebcamProvider started on port 9999..." << std::endl;
 }
 
 void RemoteWebcamProvider::stop() {
-    
+    if (!running_) return;
+    running_ = false;
+
+    if (worker_thread_.joinable()) {
+        worker_thread_.join();
+    }
+    if (sockfd_ != -1) {
+        close(sockfd_);
+        sockfd_ = -1;
+    }
+    std::cout << "RemoteWebcamProvider stopped." << std::endl;
+}
+
+void RemoteWebcamProvider::receiveLoop() {
+    char buffer[1024];
+    while (running_) {
+        ssize_t n = recvfrom(sockfd_, buffer, sizeof(buffer) - 1, 0, nullptr, nullptr);
+        if (n > 0) {
+            buffer[n] = '\0';
+            std::cout << "[Receiver] Got: " << buffer << std::endl;
+        }
+    }
 }
