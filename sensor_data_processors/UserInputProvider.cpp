@@ -50,6 +50,12 @@ void UserInputProvider::start() {
         std::cerr << "Window could not be created! SDL_Error: " << SDL_GetError() << std::endl;
     }
 
+    //  Test renderer for the window
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    if (renderer == nullptr) {
+        std::cerr << "Renderer could not be created! SDL_Error: " << SDL_GetError() << std::endl;
+    }
+
     // 3. Main Loop Flag
     SDL_Event event;
 
@@ -69,23 +75,24 @@ void UserInputProvider::start() {
 
     // 4. The Event Loop
     while (isRunning) {
-        // Poll for events (keyboard, mouse, window close, etc.)
-        while (SDL_PollEvent(&event) != 0) {       
+        
+        // ==========================================
+        // PHASE 1: INPUT (Process all pending events)
+        // ==========================================
+        while (SDL_PollEvent(&event) != 0) {   
+            
             // Handle Key Pressed Down
             if (event.type == SDL_KEYDOWN) {
-                // 'repeat' checks if this is a hold-down repeat. 
-                // We usually ignore repeats for robot logic to avoid spamming commands.
                if (event.key.repeat == 0) {
                     switch (event.key.keysym.sym) {
                         case SDLK_w: sensorData->userInput.value().forward = true; break;
-                        case SDLK_a: sensorData->userInput.value().left = true; break; // 'a' usually maps to Left, but keeping your logic
-                        case SDLK_s: sensorData->userInput.value().backward = true; break;     // 's' usually maps to Backward
+                        case SDLK_a: sensorData->userInput.value().left = true; break;
+                        case SDLK_s: sensorData->userInput.value().backward = true; break;
                         case SDLK_d: sensorData->userInput.value().right = true; break;
                         case SDLK_ESCAPE: isRunning = false; break;
                     }
                 }
             }
-
             // Handle Key Released
             else if (event.type == SDL_KEYUP) {
                 switch (event.key.keysym.sym) {
@@ -95,39 +102,70 @@ void UserInputProvider::start() {
                     case SDLK_d: sensorData->userInput.value().right = false; break;
                 }
             }
+            // Optional: Handle user clicking the 'X' on the window
+            else if (event.type == SDL_QUIT) {
+                isRunning = false;
+            }
+        } // <--- IMPORTANT: The event loop MUST close here!
 
-            //UDP Logic to check if ANY key is currently pressed 
-            bool forwardKeyPressed = sensorData->userInput.value().forward;
-            bool backwardKeyPressed = sensorData->userInput.value().backward;
-            bool leftKeyPressed = sensorData->userInput.value().left;
-            bool rightKeyPressed = sensorData->userInput.value().right;
+        // ==========================================
+        // PHASE 2: UPDATE (Game logic & Network)
+        // ==========================================
+        bool forwardKeyPressed = sensorData->userInput.value().forward;
+        bool backwardKeyPressed = sensorData->userInput.value().backward;
+        bool leftKeyPressed = sensorData->userInput.value().left;
+        bool rightKeyPressed = sensorData->userInput.value().right;
 
-           // Only send packet if the state CHANGED (OFF -> ON or ON -> OFF)
-            if (forwardKeyPressed) {
-                sendUDP("MOTOR, FORWARD");
-                dispatcher_->enqueueData(sensorData); 
-            } 
-            else if (backwardKeyPressed) {
-                sendUDP("MOTOR, BACKWARD");
-                dispatcher_->enqueueData(sensorData);  
-            }
-            else if (leftKeyPressed) {
-                sendUDP("MOTOR, LEFT");
-                dispatcher_->enqueueData(sensorData);  
-            }
-            else if (rightKeyPressed) {
-                sendUDP("MOTOR, RIGHT");
-                dispatcher_->enqueueData(sensorData);  
-            }
+        // Note: Your comment says "Only send packet if the state CHANGED" 
+        // but this logic still fires every single frame the key is held!
+        if (forwardKeyPressed) {
+            sendUDP("MOTOR, FORWARD");
+            dispatcher_->enqueueData(sensorData); 
+        } 
+        else if (backwardKeyPressed) {
+            sendUDP("MOTOR, BACKWARD");
+            dispatcher_->enqueueData(sensorData);  
         }
+        else if (leftKeyPressed) {
+            sendUDP("MOTOR, LEFT");
+            dispatcher_->enqueueData(sensorData);  
+        }
+        else if (rightKeyPressed) {
+            sendUDP("MOTOR, RIGHT");
+            dispatcher_->enqueueData(sensorData);  
+        }
+
+        // ==========================================
+        // PHASE 3: RENDER (Draw the current frame)
+        // ==========================================
+        // A. Clear the screen (Black)
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+
+        // B. Define shape
+        SDL_Rect myRect = { 640/4, 480/4, 640/2, 480/2 };
+
+        // C. Set draw color (Red)
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+
+        // D. Draw rectangle
+        SDL_RenderFillRect(renderer, &myRect);
+
+        // E. Present to screen
+        SDL_RenderPresent(renderer);
+            
+        // ==========================================
+        // PHASE 4: WAIT (Control frame rate)
+        // ==========================================
+        SDL_Delay(16); // roughly 60 FPS
     }
 
     // Cleanup
     close(arduinoSocket);
+    SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
 }
-
 void UserInputProvider::stop() {
     isRunning = false;
 }
