@@ -31,7 +31,7 @@ void RemoteWebcamProvider::start() {
     std::memset(&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = INADDR_ANY; 
-    servaddr.sin_port = htons(9999);
+    servaddr.sin_port = htons(5005);
 
     if (bind(sockfd_, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
         perror("Bind failed");
@@ -41,7 +41,7 @@ void RemoteWebcamProvider::start() {
 
     running_ = true;
     worker_thread_ = std::thread(&RemoteWebcamProvider::receiveLoop, this);
-    std::cout << "RemoteWebcamProvider started on port 9999..." << std::endl;
+    std::cout << "RemoteWebcamProvider started on port 5005..." << std::endl;
 }
 
 void RemoteWebcamProvider::stop() {

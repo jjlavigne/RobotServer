@@ -22,7 +22,7 @@ int main() {
     auto simulatedWebcamSender = std::make_shared<SimulatedWebcamSender>();
     providers.push_back(inputProvider);
     providers.push_back(remoteWebcamProvider);
-    providers.push_back(simulatedWebcamSender);
+    // providers.push_back(simulatedWebcamSender);
 
     SensorDataManager sensorDataManager(dispatcher, providers);
     sensorDataManager.start();
