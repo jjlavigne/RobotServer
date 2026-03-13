@@ -36,7 +36,7 @@ target_sources(sensor_data_processors
    SensorDataProcessorMock.cpp
    SensorDataDispatcher.cpp
    SDLWorker.cpp
-   SensorDataManager.cpp
+   WorkerManager.cpp
    UserInputProcessorWorker.cpp
    RemoteWebcamProviderWorker.cpp
    SimulatedWebcamSender.cpp
@@ -53,7 +53,7 @@ target_sources(sensor_data_processors
       SensorDataDispatcher.h
       WorkerInterface.h
       SDLWorker.h
-      SensorDataManager.h
+      WorkerManager.h
       UserInputProcessorWorker.h
       RemoteWebcamProviderWorker.h
       SimulatedWebcamSender.h

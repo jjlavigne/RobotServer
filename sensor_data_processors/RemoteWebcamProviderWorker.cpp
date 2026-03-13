@@ -13,7 +13,7 @@ RemoteWebcamProviderWorker::~RemoteWebcamProviderWorker() {
 }
 
 void RemoteWebcamProviderWorker::start() {
-    if (running_) return;
+    running_ = true;
 
     sockfd_ = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd_ < 0) {
@@ -39,9 +39,9 @@ void RemoteWebcamProviderWorker::start() {
         return;
     }
 
-    running_ = true;
-    worker_thread_ = std::thread(&RemoteWebcamProviderWorker::receiveLoop, this);
     std::cout << "RemoteWebcamProviderWorker started on port 5005..." << std::endl;
+
+    receiveLoop();
 }
 
 void RemoteWebcamProviderWorker::stop() {
