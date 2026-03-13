@@ -1,9 +1,9 @@
 #pragma once
 
 #include <gmock/gmock.h>
-#include "SensorDataProcessorInterface.h"
+#include "SensorDataWorkerInterface.h"
 
-class SensorDataProcessorMock : public SensorDataProcessorInterface{
+class SensorDataProcessorMock : public SensorDataWorkerInterface{
   public:
     SensorDataProcessorMock();
     ~SensorDataProcessorMock() override;

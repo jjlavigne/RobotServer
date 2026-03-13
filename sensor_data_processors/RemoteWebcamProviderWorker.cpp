@@ -1,18 +1,18 @@
-#include "RemoteWebcamProvider.h"
+#include "RemoteWebcamProviderWorker.h"
 #include <iostream>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
 #include <cstring>
 
-RemoteWebcamProvider::RemoteWebcamProvider(std::shared_ptr<SensorDataDispatcher> dispatcher) 
+RemoteWebcamProviderWorker::RemoteWebcamProviderWorker(std::shared_ptr<SensorDataDispatcher> dispatcher) 
     : dispatcher_(dispatcher), sockfd_(-1), running_(false) {}
 
-RemoteWebcamProvider::~RemoteWebcamProvider() {
+RemoteWebcamProviderWorker::~RemoteWebcamProviderWorker() {
     stop();
 }
 
-void RemoteWebcamProvider::start() {
+void RemoteWebcamProviderWorker::start() {
     if (running_) return;
 
     sockfd_ = socket(AF_INET, SOCK_DGRAM, 0);
@@ -40,11 +40,11 @@ void RemoteWebcamProvider::start() {
     }
 
     running_ = true;
-    worker_thread_ = std::thread(&RemoteWebcamProvider::receiveLoop, this);
-    std::cout << "RemoteWebcamProvider started on port 5005..." << std::endl;
+    worker_thread_ = std::thread(&RemoteWebcamProviderWorker::receiveLoop, this);
+    std::cout << "RemoteWebcamProviderWorker started on port 5005..." << std::endl;
 }
 
-void RemoteWebcamProvider::stop() {
+void RemoteWebcamProviderWorker::stop() {
     if (!running_) return;
     running_ = false;
 
@@ -55,10 +55,10 @@ void RemoteWebcamProvider::stop() {
         close(sockfd_);
         sockfd_ = -1;
     }
-    std::cout << "RemoteWebcamProvider stopped." << std::endl;
+    std::cout << "RemoteWebcamProviderWorker stopped." << std::endl;
 }
 
-void RemoteWebcamProvider::receiveLoop() {
+void RemoteWebcamProviderWorker::receiveLoop() {
     char buffer[1024];
     while (running_) {
         ssize_t n = recvfrom(sockfd_, buffer, sizeof(buffer) - 1, 0, nullptr, nullptr);

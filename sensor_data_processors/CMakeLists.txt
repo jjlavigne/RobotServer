@@ -35,11 +35,10 @@ target_sources(sensor_data_processors
    StreamProcessor.cpp
    SensorDataProcessorMock.cpp
    SensorDataDispatcher.cpp
-   SensorDataProviderInterface.cpp
-   UserInputProvider.cpp
+   SDLWorker.cpp
    SensorDataManager.cpp
-   UserInputProcessor.cpp
-   RemoteWebcamProvider.cpp
+   UserInputProcessorWorker.cpp
+   RemoteWebcamProviderWorker.cpp
    SimulatedWebcamSender.cpp
 
   PUBLIC
@@ -48,14 +47,14 @@ target_sources(sensor_data_processors
     BASE_DIRS
       .
     FILES
-      SensorDataProcessorInterface.h
+      SensorDataWorkerInterface.h
       StreamProcessor.h
       SensorDataProcessorMock.h
       SensorDataDispatcher.h
-      SensorDataProviderInterface.h
-      UserInputProvider.h
+      WorkerInterface.h
+      SDLWorker.h
       SensorDataManager.h
-      UserInputProcessor.h
-      RemoteWebcamProvider.h
+      UserInputProcessorWorker.h
+      RemoteWebcamProviderWorker.h
       SimulatedWebcamSender.h
 )

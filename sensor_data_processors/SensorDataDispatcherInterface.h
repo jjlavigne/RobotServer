@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-#include "SensorDataProcessorInterface.h"
+#include "SensorDataWorkerInterface.h"
 
 struct SensorDataDispatch{};
 

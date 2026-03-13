@@ -1,8 +1,8 @@
-#include "UserInputProvider.h"
+#include "SDLWorker.h"
 #include <iostream>
 #include <thread>
 #include <SDL2/SDL.h>
-#include "SensorDataProcessorInterface.h"
+#include "SensorDataWorkerInterface.h"
 
 
 #include <sys/socket.h>
@@ -13,7 +13,7 @@
 const char* ARDUINO_IP = "192.168.7.23"; 
 const int ARDUINO_PORT = 4210;
 
-void UserInputProvider::start() {
+void SDLWorker::start() {
     int arduinoSocket = socket(AF_INET, SOCK_DGRAM, 0);
     if (arduinoSocket < 0) {
         std::cerr << "Error creating socket" << std::endl;
@@ -166,6 +166,6 @@ void UserInputProvider::start() {
     SDL_DestroyWindow(window);
     SDL_Quit();
 }
-void UserInputProvider::stop() {
+void SDLWorker::stop() {
     isRunning = false;
 }

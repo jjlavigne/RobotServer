@@ -2,9 +2,9 @@
 
 #include <memory>
 
-class SensorDataProviderInterface {
+class WorkerInterface {
 public:
-  virtual ~SensorDataProviderInterface() = default;
+  virtual ~WorkerInterface() = default;
 
   virtual void start() = 0;
   virtual void stop() = 0;

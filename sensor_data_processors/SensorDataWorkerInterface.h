@@ -1,5 +1,7 @@
 #pragma once
 
+#include "WorkerInterface.h"
+
 #include <memory>
 #include <optional>
 
@@ -14,9 +16,9 @@ struct SensorData{
   std::optional<UserInputData> userInput;
 };
 
-class SensorDataProcessorInterface {
+class SensorDataWorkerInterface : public WorkerInterface {
 public:
-  virtual ~SensorDataProcessorInterface() = default;
+  virtual ~SensorDataWorkerInterface() = default;
 
   virtual void process(std::shared_ptr<SensorData> data) = 0;
 };

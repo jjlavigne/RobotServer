@@ -1,10 +1,10 @@
 #pragma once
-#include "SensorDataProviderInterface.h"
+#include "WorkerInterface.h"
 #include <thread>
 #include <atomic>
 #include <string>
 
-class SimulatedWebcamSender : public SensorDataProviderInterface {
+class SimulatedWebcamSender : public WorkerInterface {
 public:
     SimulatedWebcamSender();
     ~SimulatedWebcamSender() override;

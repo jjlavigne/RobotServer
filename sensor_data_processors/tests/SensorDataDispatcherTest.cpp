@@ -11,11 +11,11 @@ class SensorDataDispatcherTest : public ::testing::Test {
   public:
     void SetUp() override {
         processorMock_ = std::make_shared<StrictMock<SensorDataProcessorMock>>();
-        std::vector<std::shared_ptr<SensorDataProcessorInterface>> processors;
+        std::vector<std::shared_ptr<SensorDataWorkerInterface>> processors;
         processors.push_back(processorMock_);
         disPatcher_ = std::make_shared<SensorDataDispatcher>(processors);
 
-    std::vector<std::shared_ptr<SensorDataProcessorInterface>> multiProcessors;
+    std::vector<std::shared_ptr<SensorDataWorkerInterface>> multiProcessors;
      for (int i = 0; i < numProcessors; i++) {
         auto processor = std::make_shared<StrictMock<SensorDataProcessorMock>>();
         multiProcessors_.push_back(processor);

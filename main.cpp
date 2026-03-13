@@ -3,25 +3,25 @@
 #include "StreamProcessor.h"
 #include "SensorDataManager.h"
 #include "SensorDataDispatcher.h"
-#include "UserInputProvider.h"
-#include "UserInputProcessor.h"
-#include "RemoteWebcamProvider.h"
+#include "SDLWorker.h"
+#include "UserInputProcessorWorker.h"
+#include "RemoteWebcamProviderWorker.h"
 #include "SimulatedWebcamSender.h"
 
 
 int main() {
     std::cout << "Hello, Robot Server!" << std::endl;
-    std::vector<std::shared_ptr<SensorDataProcessorInterface>> processors;
-    auto processor = std::make_shared<UserInputProcessor>();
+    std::vector<std::shared_ptr<SensorDataWorkerInterface>> processors;
+    auto processor = std::make_shared<UserInputProcessorWorker>();
     processors.push_back(processor);
     auto dispatcher = std::make_shared<SensorDataDispatcher>(processors);
 
-    std::vector<std::shared_ptr<SensorDataProviderInterface>> providers;
-    auto inputProvider = std::make_shared<UserInputProvider>(dispatcher);
-    auto remoteWebcamProvider = std::make_shared<RemoteWebcamProvider>(dispatcher);
+    std::vector<std::shared_ptr<WorkerInterface>> providers;
+    auto inputProvider = std::make_shared<SDLWorker>(dispatcher);
+    auto remoteWebcamProviderWorker = std::make_shared<RemoteWebcamProviderWorker>(dispatcher);
     auto simulatedWebcamSender = std::make_shared<SimulatedWebcamSender>();
     providers.push_back(inputProvider);
-    providers.push_back(remoteWebcamProvider);
+    providers.push_back(remoteWebcamProviderWorker);
     // providers.push_back(simulatedWebcamSender);
 
     SensorDataManager sensorDataManager(dispatcher, providers);
