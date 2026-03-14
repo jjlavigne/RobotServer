@@ -9,3 +9,8 @@ void SensorDataDispatcher::enqueueData(std::shared_ptr<SensorData> data) {
     }
 }
 
+void SensorDataDispatcher::addProcessor(std::shared_ptr<SensorDataWorkerInterface> processor) {
+    if (processor != nullptr) {
+        processors_.push_back(processor);
+    }
+}

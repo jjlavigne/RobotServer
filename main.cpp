@@ -12,18 +12,21 @@
 int main() {
     std::cout << "Hello, Robot Server!" << std::endl;
     std::vector<std::shared_ptr<SensorDataWorkerInterface>> processors;
-    auto processor = std::make_shared<UserInputProcessorWorker>();
-    processors.push_back(processor);
+    auto userInputProcessor = std::make_shared<UserInputProcessorWorker>();
+    processors.push_back(userInputProcessor);
     auto dispatcher = std::make_shared<SensorDataDispatcher>(processors);
 
     std::vector<std::shared_ptr<WorkerInterface>> workers;
     std::vector<std::shared_ptr<WorkerInterface>> asyncWorkers;
-    auto inputProvider = std::make_shared<SDLWorker>(dispatcher);
+    auto sdlWorker = std::make_shared<SDLWorker>(dispatcher);
     auto remoteWebcamProviderWorker = std::make_shared<RemoteWebcamProviderWorker>(dispatcher);
     auto simulatedWebcamSender = std::make_shared<SimulatedWebcamSender>();
-    asyncWorkers.push_back(inputProvider);
+
+    dispatcher->addProcessor(sdlWorker);
+
+    asyncWorkers.push_back(sdlWorker);
     asyncWorkers.push_back(remoteWebcamProviderWorker);
-    // asyncWorkers.push_back(simulatedWebcamSender);
+    //asyncWorkers.push_back(simulatedWebcamSender);
 
     WorkerManager workerManager(dispatcher, workers, asyncWorkers);
     workerManager.start();

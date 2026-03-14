@@ -1,13 +1,16 @@
 #include "WorkerManager.h"
 #include "SDLWorker.h"
+#include <iostream>
 
-WorkerManager::WorkerManager(std::shared_ptr<SensorDataDispatcherInterface> dispatcher, std::vector<std::shared_ptr<WorkerInterface>> workers, std::vector<std::shared_ptr<WorkerInterface>> asyncWorkers) : dispatcher_(std::move(dispatcher)), asyncWorkers_(std::move(workers)), workers_(std::move(asyncWorkers)) {}
+WorkerManager::WorkerManager(std::shared_ptr<SensorDataDispatcherInterface> dispatcher, std::vector<std::shared_ptr<WorkerInterface>> workers, std::vector<std::shared_ptr<WorkerInterface>> asyncWorkers) : dispatcher_(std::move(dispatcher)), workers_(std::move(workers)), asyncWorkers_(std::move(asyncWorkers)) {}
 
 void WorkerManager::start(){
     for (auto& worker : workers_) {
+        std::cout << "workers" << std::endl;
         worker->start();
     }
     for (auto& worker : asyncWorkers_) {
+        std::cout << "async workers" << std::endl;
         std::thread workerThread([&worker]() { worker->start(); });
         workerThreads_.push_back(std::move(workerThread));
     }

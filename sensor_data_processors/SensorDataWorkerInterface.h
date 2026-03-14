@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <optional>
+#include <vector>
 
 struct UserInputData{
   bool forward = false;
@@ -12,8 +13,15 @@ struct UserInputData{
   bool right = false; 
 };
 
+struct ShapeData {
+    int x, y, width, height;
+    int r, g, b; // Added color specifications!
+};
+
 struct SensorData{
   std::optional<UserInputData> userInput;
+  std::optional<ShapeData> shape;
+  
 };
 
 class SensorDataWorkerInterface : public WorkerInterface {

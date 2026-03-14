@@ -13,6 +13,13 @@
 const char* ARDUINO_IP = "192.168.7.23"; 
 const int ARDUINO_PORT = 4210;
 
+void SDLWorker::process(std::shared_ptr<SensorData> data) {
+    // Lock the mutex so the network thread doesn't overwrite 
+    // the data at the exact moment the SDL thread is reading it.
+    std::lock_guard<std::mutex> lock(dataMutex_);
+    latestData_ = data; 
+}
+
 void SDLWorker::start() {
     int arduinoSocket = socket(AF_INET, SOCK_DGRAM, 0);
     if (arduinoSocket < 0) {
@@ -62,6 +69,9 @@ void SDLWorker::start() {
     std::cout << "Controller started. Press W, A, S, D to drive. Close window to quit." << std::endl;
 
     auto sensorData = std::make_shared<SensorData>();
+    if (!sensorData->userInput.has_value()) {
+        return;
+    }
     sensorData->userInput = UserInputData();
 
     sensorData->userInput.value().forward = false;
@@ -142,16 +152,32 @@ void SDLWorker::start() {
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
-        // B. Define shape
-        SDL_Rect myRect = { 640/4, 480/4, 640/2, 480/2 };
+        // B. Safely check the mailbox
+        std::shared_ptr<SensorData> dataToDraw = nullptr;
+        {
+            std::lock_guard<std::mutex> lock(dataMutex_);
+            dataToDraw = latestData_;
+        }
 
-        // C. Set draw color (Red)
-        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+        // C. Draw based on received data
+        if (dataToDraw != nullptr) {
+            
+            if (dataToDraw->shape.has_value()) {
+                // Read the shape instructions from the UDP packet
+                auto shape = dataToDraw->shape.value();
+                SDL_Rect myRect = { shape.x, shape.y, shape.width, shape.height };
+                
+                // Use the colors sent from the Python script
+                SDL_SetRenderDrawColor(renderer, shape.r, shape.g, shape.b, 255);
+                SDL_RenderFillRect(renderer, &myRect);
+            }
+            // FUTURE PROOFING: 
+            // else if (dataToDraw->image.has_value()) {
+            //      ... SDL_Texture logic goes here later ...
+            // }
+        }
 
-        // D. Draw rectangle
-        SDL_RenderFillRect(renderer, &myRect);
-
-        // E. Present to screen
+        // D. Present to screen
         SDL_RenderPresent(renderer);
             
         // ==========================================
