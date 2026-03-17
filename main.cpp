@@ -8,7 +8,6 @@
 #include "RemoteWebcamProviderWorker.h"
 #include "SimulatedWebcamSender.h"
 
-
 int main() {
     std::cout << "Hello, Robot Server!" << std::endl;
     std::vector<std::shared_ptr<SensorDataWorkerInterface>> processors;
@@ -20,7 +19,7 @@ int main() {
     std::vector<std::shared_ptr<WorkerInterface>> asyncWorkers;
     auto sdlWorker = std::make_shared<SDLWorker>(dispatcher);
     auto remoteWebcamProviderWorker = std::make_shared<RemoteWebcamProviderWorker>(dispatcher);
-    auto simulatedWebcamSender = std::make_shared<SimulatedWebcamSender>();
+    //auto simulatedWebcamSender = std::make_shared<SimulatedWebcamSender>();
 
     dispatcher->addProcessor(sdlWorker);
 

@@ -69,9 +69,7 @@ void SDLWorker::start() {
     std::cout << "Controller started. Press W, A, S, D to drive. Close window to quit." << std::endl;
 
     auto sensorData = std::make_shared<SensorData>();
-    if (!sensorData->userInput.has_value()) {
-        return;
-    }
+
     sensorData->userInput = UserInputData();
 
     sensorData->userInput.value().forward = false;
