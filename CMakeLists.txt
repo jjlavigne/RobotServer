@@ -19,4 +19,8 @@ target_sources(ROBOTSERVER
 target_link_libraries(ROBOTSERVER
   PRIVATE
     sensor_data_processors
+    SDL2        # Links standard SDL2
+    SDL2_image  # Links the image extension
 )
+
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/assets DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

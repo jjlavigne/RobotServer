@@ -2,6 +2,7 @@
 #include <iostream>
 #include <thread>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 #include "SensorDataWorkerInterface.h"
 
 
@@ -43,6 +44,11 @@ void SDLWorker::start() {
         std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError() << std::endl;
     }
 
+    int imgFlags = IMG_INIT_JPG;
+    if (!(IMG_Init(imgFlags) & imgFlags)) {
+        std::cerr << "SDL_image could not initialize! SDL_image Error: " << IMG_GetError() << std::endl;
+    }
+
     // 2. Create a window (Required to capture keyboard events)
     SDL_Window* window = SDL_CreateWindow(
         "Robot Controller (click here)",
@@ -61,6 +67,15 @@ void SDLWorker::start() {
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     if (renderer == nullptr) {
         std::cerr << "Renderer could not be created! SDL_Error: " << SDL_GetError() << std::endl;
+    }
+
+    SDL_Texture* testTexture = nullptr;
+    SDL_Surface* loadedSurface = IMG_Load("assets/TestImageSDLRenderingSpongebob.jpg"); 
+    if (loadedSurface == nullptr) {
+        std::cerr << "Unable to load test image! SDL_image Error: " << IMG_GetError() << std::endl;
+    } else {
+        testTexture = SDL_CreateTextureFromSurface(renderer, loadedSurface);
+        SDL_FreeSurface(loadedSurface); // Free the RAM surface
     }
 
     // 3. Main Loop Flag
@@ -150,29 +165,9 @@ void SDLWorker::start() {
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
-        // B. Safely check the mailbox
-        std::shared_ptr<SensorData> dataToDraw = nullptr;
-        {
-            std::lock_guard<std::mutex> lock(dataMutex_);
-            dataToDraw = latestData_;
-        }
-
-        // C. Draw based on received data
-        if (dataToDraw != nullptr) {
-            
-            if (dataToDraw->shape.has_value()) {
-                // Read the shape instructions from the UDP packet
-                auto shape = dataToDraw->shape.value();
-                SDL_Rect myRect = { shape.x, shape.y, shape.width, shape.height };
-                
-                // Use the colors sent from the Python script
-                SDL_SetRenderDrawColor(renderer, shape.r, shape.g, shape.b, 255);
-                SDL_RenderFillRect(renderer, &myRect);
-            }
-            // FUTURE PROOFING: 
-            // else if (dataToDraw->image.has_value()) {
-            //      ... SDL_Texture logic goes here later ...
-            // }
+        if (testTexture != nullptr) {
+            // NULL, NULL stretches it to fill the whole 640x480 window.
+            SDL_RenderCopy(renderer, testTexture, NULL, NULL);
         }
 
         // D. Present to screen
