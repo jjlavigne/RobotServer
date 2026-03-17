@@ -61,7 +61,6 @@ void RemoteWebcamProviderWorker::stop() {
 }
 
 void RemoteWebcamProviderWorker::receiveLoop() {
-    std::cout << "recieve loop entered" << std::endl;
     char buffer[1024];
     while (running_) {
         ssize_t n = recvfrom(sockfd_, buffer, sizeof(buffer) - 1, 0, nullptr, nullptr);
@@ -76,7 +75,7 @@ void RemoteWebcamProviderWorker::receiveLoop() {
         }
         if (n > 0) {
             buffer[n] = '\0'; // Make sure it's a valid string
-            std::cout << "[Receiver] Got: " << buffer << std::endl;
+            //std::cout << "[Receiver] Got: " << buffer << std::endl;
 
             // 1. Create a fresh, empty SensorData packet
             auto data = std::make_shared<SensorData>();
@@ -94,7 +93,6 @@ void RemoteWebcamProviderWorker::receiveLoop() {
             if (parsedItems == 7) {
                 // Yes! Populate the struct inside our packet
                 data->shape = incomingShape; 
-                
                 // 4. Hand the populated packet to the dispatcher
                 dispatcher_->enqueueData(data); 
             }
