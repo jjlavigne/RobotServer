@@ -9,6 +9,8 @@ include_directories(sensor_data_processors)
 
 add_executable(ROBOTSERVER)
 
+enable_testing()
+
 add_subdirectory(sensor_data_processors)
 
 target_sources(ROBOTSERVER

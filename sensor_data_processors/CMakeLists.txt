@@ -15,6 +15,8 @@ add_library(sensor_data_processors)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/third-party/googletest ${CMAKE_BINARY_DIR}/googletest)
 
+add_subdirectory(tests)
+
 target_include_directories(sensor_data_processors
   SYSTEM PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
