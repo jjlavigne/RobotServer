@@ -4,6 +4,8 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <cstring>
+#include <map>
+#include <vector>
 
 
 RemoteWebcamProviderWorker::RemoteWebcamProviderWorker(std::shared_ptr<SensorDataDispatcher> dispatcher) 
@@ -50,9 +52,6 @@ void RemoteWebcamProviderWorker::stop() {
     if (!running_) return;
     running_ = false;
 
-    if (worker_thread_.joinable()) {
-        worker_thread_.join();
-    }
     if (sockfd_ != -1) {
         close(sockfd_);
         sockfd_ = -1;
@@ -61,40 +60,75 @@ void RemoteWebcamProviderWorker::stop() {
 }
 
 void RemoteWebcamProviderWorker::receiveLoop() {
-    char buffer[1024];
+    // 1. INCREASE BUFFER SIZE to safely hold the 1410 byte packets
+    std::cout << "recieve loop entered" << std::endl;
+    uint8_t buffer[2048]; 
+    std::cout << "buffer created" << std::endl;
+
     while (running_) {
-        ssize_t n = recvfrom(sockfd_, buffer, sizeof(buffer) - 1, 0, nullptr, nullptr);
-        if (n == -1) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                std::cout << "didnt get data: " << errno <<std::endl;
-                // Didn't get data, retrying...
-            } else {
-                std::cout << "Error reading socket error: " << errno <<std::endl;
-                return;
-            }
-        }
+        ssize_t n = recvfrom(sockfd_, buffer, sizeof(buffer), 0, nullptr, nullptr);
+        std::cout << "N: " << n << std::endl;
+        
         if (n > 0) {
-            buffer[n] = '\0'; // Make sure it's a valid string
-            //std::cout << "[Receiver] Got: " << buffer << std::endl;
+            // 2. Check if it's too small for our 10-byte header
+            if (n < 10) {
+                // Swapped \n for std::endl to fix Docker log buffering
+                std::cout << "[RWP ERROR] Packet too small (" << n << " bytes)" << std::endl;
+                continue; // Skip the rest of the loop and wait for the next packet
+            }
 
-            // 1. Create a fresh, empty SensorData packet
-            auto data = std::make_shared<SensorData>();
-            ShapeData incomingShape;
+            // 3. Safely unpack the binary header (matching Python's '<IHHH')
+            uint32_t frame_id;
+            uint16_t total_chunks;
+            uint16_t chunk_index;
+            uint16_t chunk_size;
 
-            // 2. Parse the string! 
-            // We expect the Python script to send: "SHAPE,x,y,width,height,r,g,b"
-            // sscanf will extract those numbers and drop them directly into our struct variables.
-            int parsedItems = sscanf(buffer, "SHAPE,%d,%d,%d,%d,%d,%d,%d", 
-                                     &incomingShape.x, &incomingShape.y, 
-                                     &incomingShape.width, &incomingShape.height,
-                                     &incomingShape.r, &incomingShape.g, &incomingShape.b);
+            std::memcpy(&frame_id, buffer, sizeof(frame_id));
+            std::memcpy(&total_chunks, buffer + 4, sizeof(total_chunks));
+            std::memcpy(&chunk_index, buffer + 6, sizeof(chunk_index));
+            std::memcpy(&chunk_size, buffer + 8, sizeof(chunk_size));
 
-            // 3. Did we successfully grab all 7 numbers?
-            if (parsedItems == 7) {
-                // Yes! Populate the struct inside our packet
-                data->shape = incomingShape; 
-                // 4. Hand the populated packet to the dispatcher
-                dispatcher_->enqueueData(data); 
+            // Swapped \n for std::endl to fix Docker log buffering
+            std::cout << "[RWP] Got frame " << frame_id << " | chunk " 
+                      << chunk_index << "/" << total_chunks 
+                      << " | size: " << chunk_size << " bytes" << std::endl;
+
+            // 4. Extract the payload (the actual JPEG bytes)
+            std::vector<uint8_t> payload(buffer + 10, buffer + 10 + chunk_size);
+
+            // 5. Store the chunk in our map
+            frameBuffers_[frame_id][chunk_index] = payload;
+
+            // 6. Check if we have received all chunks for this frame
+            if (frameBuffers_[frame_id].size() == total_chunks) {
+
+                // Swapped \n for std::endl to fix Docker log buffering
+                std::cout << "[RWP SUCCESS] Frame " << frame_id << " fully assembled! Sending to SDL." << std::endl;
+                
+                // Assemble the full JPEG
+                auto data = std::make_shared<SensorData>();
+                data->image = ImageData();
+                
+                for (uint16_t i = 0; i < total_chunks; ++i) {
+                    data->image->jpegBuffer.insert(
+                        data->image->jpegBuffer.end(), 
+                        frameBuffers_[frame_id][i].begin(), 
+                        frameBuffers_[frame_id][i].end()
+                    );
+                }
+
+                // Send to SDL Worker
+                dispatcher_->enqueueData(data);
+
+                // Clean up old frames to prevent memory leaks!
+                // We erase this frame, and any older frames that were incomplete
+                for (auto it = frameBuffers_.begin(); it != frameBuffers_.end(); ) {
+                    if (it->first <= frame_id) {
+                        it = frameBuffers_.erase(it);
+                    } else {
+                        ++it;
+                    }
+                }
             }
         }
     }

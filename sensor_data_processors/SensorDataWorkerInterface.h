@@ -5,6 +5,7 @@
 #include <memory>
 #include <optional>
 #include <vector>
+#include <cstdint>
 
 struct UserInputData{
   bool forward = false;
@@ -18,9 +19,14 @@ struct ShapeData {
     int r, g, b; // Added color specifications!
 };
 
+struct ImageData {
+    std::vector<uint8_t> jpegBuffer;
+};
+
 struct SensorData{
   std::optional<UserInputData> userInput;
   std::optional<ShapeData> shape;
+  std::optional<ImageData> image;
   
 };
 

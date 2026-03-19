@@ -10,16 +10,17 @@ set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../folly-deps/installed")
 
 find_package(folly REQUIRED)
 find_package(gflags REQUIRED)
-find_package(Curses REQUIRED)
 find_package(SDL2 REQUIRED)
+find_package(OpenCV REQUIRED)
 
 add_library(sensor_data_processors)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../googletest ${CMAKE_BINARY_DIR}/googletest)
 
 target_include_directories(sensor_data_processors
-  PUBLIC
+  SYSTEM PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${OpenCV_INCLUDE_DIRS}
 )
 
 target_link_libraries(sensor_data_processors
@@ -27,7 +28,7 @@ target_link_libraries(sensor_data_processors
     GTest::gmock
     Folly::folly
     SDL2::SDL2
-    ${CURSES_LIBRARIES}
+    ${OpenCV_LIBS}
 )
 
 target_sources(sensor_data_processors
@@ -40,6 +41,7 @@ target_sources(sensor_data_processors
    UserInputProcessorWorker.cpp
    RemoteWebcamProviderWorker.cpp
    SimulatedWebcamSender.cpp
+   PetDetectionWorker.cpp
 
   PUBLIC
     FILE_SET myHeaders
@@ -57,4 +59,5 @@ target_sources(sensor_data_processors
       UserInputProcessorWorker.h
       RemoteWebcamProviderWorker.h
       SimulatedWebcamSender.h
+      PetDetectionWorker.h
 )

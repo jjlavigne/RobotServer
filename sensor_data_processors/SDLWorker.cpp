@@ -19,6 +19,11 @@ void SDLWorker::process(std::shared_ptr<SensorData> data) {
     // the data at the exact moment the SDL thread is reading it.
     std::lock_guard<std::mutex> lock(dataMutex_);
     latestData_ = data; 
+
+    if (data && data->image.has_value()) {
+        std::cout << "[SDL] Received new image data! Size: " 
+                  << data->image->jpegBuffer.size() << " bytes.\n";
+    }
 }
 
 void SDLWorker::start() {
@@ -161,16 +166,52 @@ void SDLWorker::start() {
         // ==========================================
         // PHASE 3: RENDER (Draw the current frame)
         // ==========================================
-        // A. Clear the screen (Black)
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-        SDL_RenderClear(renderer);
+        // SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        // SDL_RenderClear(renderer);
 
-        if (testTexture != nullptr) {
-            // NULL, NULL stretches it to fill the whole 640x480 window.
-            SDL_RenderCopy(renderer, testTexture, NULL, NULL);
+        std::shared_ptr<SensorData> currentData;
+        {
+            std::lock_guard<std::mutex> lock(dataMutex_);
+            currentData = latestData_;
         }
 
-        // D. Present to screen
+        if (currentData && currentData->image.has_value() && !currentData->image->jpegBuffer.empty()) {
+            
+            SDL_RWops* rw = SDL_RWFromConstMem(
+                currentData->image->jpegBuffer.data(), 
+                currentData->image->jpegBuffer.size()
+            );
+
+            if (rw != nullptr) {
+                SDL_Surface* surface = IMG_Load_RW(rw, 1); 
+                
+                if (surface != nullptr) {
+                    SDL_Texture* frameTexture = SDL_CreateTextureFromSurface(renderer, surface);
+                    
+                    if (frameTexture != nullptr) {
+                        SDL_RenderCopy(renderer, frameTexture, NULL, NULL);
+                        SDL_DestroyTexture(frameTexture); 
+                        currentData->image->jpegBuffer.clear();
+                    } else {
+                        // ---------------------------------------------------------
+                        // LOG 4: Texture Creation Error
+                        // ---------------------------------------------------------
+                        std::cerr << "[SDL ERROR] Failed to create texture: " << SDL_GetError() << "\n";
+                    }
+                    SDL_FreeSurface(surface); 
+                } else {
+                    // ---------------------------------------------------------
+                    // LOG 5: JPEG Decoding Error
+                    // ---------------------------------------------------------
+                    std::cerr << "[SDL ERROR] IMG_Load_RW failed to decode JPEG: " << IMG_GetError() << "\n";
+                }
+            } else {
+                std::cerr << "[SDL ERROR] SDL_RWFromConstMem failed.\n";
+            }
+        } else if (testTexture != nullptr) {
+            // SDL_RenderCopy(renderer, testTexture, NULL, NULL);
+        }
+
         SDL_RenderPresent(renderer);
             
         // ==========================================
