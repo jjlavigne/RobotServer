@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.23)
 
-project(ROBOTSERVER)
-
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -15,7 +13,7 @@ find_package(OpenCV REQUIRED)
 
 add_library(sensor_data_processors)
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../googletest ${CMAKE_BINARY_DIR}/googletest)
+add_subdirectory(${PROJECT_SOURCE_DIR}/third-party/googletest ${CMAKE_BINARY_DIR}/googletest)
 
 target_include_directories(sensor_data_processors
   SYSTEM PUBLIC

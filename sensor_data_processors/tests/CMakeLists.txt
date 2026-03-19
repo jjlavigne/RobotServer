@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.23)
 project(ROBOTSERVER)
- 
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../../googletest ${CMAKE_BINARY_DIR}/googletest)
+add_subdirectory(${PROJECT_SOURCE_DIR}/third-party/googletest ${CMAKE_BINARY_DIR}/googletest)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../ sensor_data_processors)
 
 add_executable(sensor_data_dispatcher_test SensorDataDispatcherTest.cpp)
