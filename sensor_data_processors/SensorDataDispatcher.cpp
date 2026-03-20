@@ -1,11 +1,12 @@
 #include <iostream>
 #include "SensorDataDispatcher.h"
+#include <thread>
 
 SensorDataDispatcher::SensorDataDispatcher(std::vector<std::shared_ptr<SensorDataWorkerInterface>> processors) : processors_(std::move(processors)) {}
 
 void SensorDataDispatcher::enqueueData(std::shared_ptr<SensorData> data) {
     for (auto& processor : processors_) {
-        processor->process(data);
+        processor->process(data); 
     }
 }
 

@@ -9,9 +9,8 @@ set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../folly-deps/installed")
 find_package(folly REQUIRED)
 find_package(gflags REQUIRED)
 find_package(SDL2 REQUIRED)
-find_package(OpenCV REQUIRED)
 
-add_library(sensor_data_processors)
+add_library(sensor_data_processors STATIC)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/third-party/googletest ${CMAKE_BINARY_DIR}/googletest)
 
@@ -20,15 +19,30 @@ add_subdirectory(tests)
 target_include_directories(sensor_data_processors
   SYSTEM PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${OpenCV_INCLUDE_DIRS}
+    ${PROJECT_BINARY_DIR}
+    ${PROJECT_SOURCE_DIR}/third-party/opencv/include
+    ${PROJECT_SOURCE_DIR}/third-party/opencv/modules/core/include
+    ${PROJECT_SOURCE_DIR}/third-party/opencv/modules/calib3d/include
+    ${PROJECT_SOURCE_DIR}/third-party/opencv/modules/features2d/include
+    ${PROJECT_SOURCE_DIR}/third-party/opencv/modules/flann/include
+    ${PROJECT_SOURCE_DIR}/third-party/opencv/modules/highgui/include
+    ${PROJECT_SOURCE_DIR}/third-party/opencv/modules/imgcodecs/include
+    ${PROJECT_SOURCE_DIR}/third-party/opencv/modules/imgproc/include
+    ${PROJECT_SOURCE_DIR}/third-party/opencv/modules/ml/include
+    ${PROJECT_SOURCE_DIR}/third-party/opencv/modules/objdetect/include
+    ${PROJECT_SOURCE_DIR}/third-party/opencv/modules/photo/include
+    ${PROJECT_SOURCE_DIR}/third-party/opencv/modules/stitching/include
+    ${PROJECT_SOURCE_DIR}/third-party/opencv/modules/video/include
+    ${PROJECT_SOURCE_DIR}/third-party/opencv/modules/videoio/include
+    ${PROJECT_SOURCE_DIR}/third-party/opencv/modules/dnn/include
 )
 
 target_link_libraries(sensor_data_processors
-  PRIVATE
+  PUBLIC
     GTest::gmock
     Folly::folly
     SDL2::SDL2
-    ${OpenCV_LIBS}
+    opencv_world
 )
 
 target_sources(sensor_data_processors
@@ -42,6 +56,7 @@ target_sources(sensor_data_processors
    RemoteWebcamProviderWorker.cpp
    SimulatedWebcamSender.cpp
    PetDetectionWorker.cpp
+   YoloPetDetectionWorker.cpp
 
   PUBLIC
     FILE_SET myHeaders
@@ -60,4 +75,10 @@ target_sources(sensor_data_processors
       RemoteWebcamProviderWorker.h
       SimulatedWebcamSender.h
       PetDetectionWorker.h
+      YoloPetDetectionWorker.h
+)
+
+target_compile_definitions(sensor_data_processors
+  PRIVATE 
+    MODEL_DIR=\"${PROJECT_SOURCE_DIR}/build/\"
 )

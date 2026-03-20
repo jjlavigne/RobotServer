@@ -7,10 +7,13 @@
 
 class PetDetectionWorker : public SensorDataWorkerInterface {
 public: 
-    PetDetectionWorker() = default;
+    PetDetectionWorker();
     ~PetDetectionWorker() override = default;
 
     void start() override;
     void stop() override;
     void process(std::shared_ptr<SensorData> data) override;
+private: 
+    cv::dnn::Net net; // The "brain" variable
+    void detectDogs(cv::Mat& frame);
 };

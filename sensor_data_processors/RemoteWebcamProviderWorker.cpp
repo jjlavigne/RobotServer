@@ -16,7 +16,7 @@ RemoteWebcamProviderWorker::~RemoteWebcamProviderWorker() {
 }
 
 void RemoteWebcamProviderWorker::start() {
-    std::cout << "RWP start" << std::endl;
+    //std::cout << "RWP start" << std::endl;
     running_ = true;
 
     sockfd_ = socket(AF_INET, SOCK_DGRAM, 0);
@@ -61,13 +61,12 @@ void RemoteWebcamProviderWorker::stop() {
 
 void RemoteWebcamProviderWorker::receiveLoop() {
     // 1. INCREASE BUFFER SIZE to safely hold the 1410 byte packets
-    std::cout << "recieve loop entered" << std::endl;
     uint8_t buffer[2048]; 
     std::cout << "buffer created" << std::endl;
 
     while (running_) {
         ssize_t n = recvfrom(sockfd_, buffer, sizeof(buffer), 0, nullptr, nullptr);
-        std::cout << "N: " << n << std::endl;
+        //std::cout << "N: " << n << std::endl;
         
         if (n > 0) {
             // 2. Check if it's too small for our 10-byte header
@@ -89,9 +88,9 @@ void RemoteWebcamProviderWorker::receiveLoop() {
             std::memcpy(&chunk_size, buffer + 8, sizeof(chunk_size));
 
             // Swapped \n for std::endl to fix Docker log buffering
-            std::cout << "[RWP] Got frame " << frame_id << " | chunk " 
-                      << chunk_index << "/" << total_chunks 
-                      << " | size: " << chunk_size << " bytes" << std::endl;
+            //std::cout << "[RWP] Got frame " << frame_id << " | chunk " 
+                      //<< chunk_index << "/" << total_chunks 
+                      //<< " | size: " << chunk_size << " bytes" << std::endl;
 
             // 4. Extract the payload (the actual JPEG bytes)
             std::vector<uint8_t> payload(buffer + 10, buffer + 10 + chunk_size);
@@ -103,7 +102,7 @@ void RemoteWebcamProviderWorker::receiveLoop() {
             if (frameBuffers_[frame_id].size() == total_chunks) {
 
                 // Swapped \n for std::endl to fix Docker log buffering
-                std::cout << "[RWP SUCCESS] Frame " << frame_id << " fully assembled! Sending to SDL." << std::endl;
+                //std::cout << "[RWP SUCCESS] Frame " << frame_id << " fully assembled! Sending to SDL." << std::endl;
                 
                 // Assemble the full JPEG
                 auto data = std::make_shared<SensorData>();

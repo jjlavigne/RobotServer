@@ -21,8 +21,8 @@ void SDLWorker::process(std::shared_ptr<SensorData> data) {
     latestData_ = data; 
 
     if (data && data->image.has_value()) {
-        std::cout << "[SDL] Received new image data! Size: " 
-                  << data->image->jpegBuffer.size() << " bytes.\n";
+        //std::cout << "[SDL] Received new image data! Size: " 
+                  //<< data->image->jpegBuffer.size() << " bytes.\n";
     }
 }
 
@@ -191,7 +191,7 @@ void SDLWorker::start() {
                     if (frameTexture != nullptr) {
                         SDL_RenderCopy(renderer, frameTexture, NULL, NULL);
                         SDL_DestroyTexture(frameTexture); 
-                        currentData->image->jpegBuffer.clear();
+                        //currentData->image->jpegBuffer.clear();
                     } else {
                         // ---------------------------------------------------------
                         // LOG 4: Texture Creation Error
