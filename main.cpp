@@ -18,6 +18,7 @@ int main() {
 
     std::vector<std::shared_ptr<WorkerInterface>> workers;
     std::vector<std::shared_ptr<WorkerInterface>> asyncWorkers;
+    
     auto sdlWorker = std::make_shared<SDLWorker>(dispatcher);
     auto remoteWebcamProviderWorker = std::make_shared<RemoteWebcamProviderWorker>(dispatcher);
     //auto petDetectionWorker = std::make_shared<PetDetectionWorker>();

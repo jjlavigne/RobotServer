@@ -1,32 +1,32 @@
 #include "SDLWorker.h"
-#include <iostream>
-#include <thread>
+#include "SensorDataWorkerInterface.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
-#include "SensorDataWorkerInterface.h"
+#include <iostream>
+#include <thread>
 
-
-#include <sys/socket.h>
 #include <arpa/inet.h>
-#include <unistd.h> 
+#include <sys/socket.h>
+#include <unistd.h>
 
-
-const char* ARDUINO_IP = "192.168.7.23"; 
+const char* ARDUINO_IP = "192.168.7.23";
 const int ARDUINO_PORT = 4210;
 
-void SDLWorker::process(std::shared_ptr<SensorData> data) {
-    // Lock the mutex so the network thread doesn't overwrite 
-    // the data at the exact moment the SDL thread is reading it.
-    std::lock_guard<std::mutex> lock(dataMutex_);
-    latestData_ = data; 
+SDLWorker::SDLWorker(std::shared_ptr<SensorDataDispatcherInterface> dispatcher)
+    : dispatcher_(std::move(dispatcher)),
+      queue_(folly::ProducerConsumerQueue<std::shared_ptr<SensorData>>(100)) {}
 
-    if (data && data->image.has_value()) {
-        //std::cout << "[SDL] Received new image data! Size: " 
-                  //<< data->image->jpegBuffer.size() << " bytes.\n";
+void SDLWorker::process(std::shared_ptr<SensorData> data) {}
+
+void SDLWorker::enqueue(std::shared_ptr<SensorData> data) {
+    if (!data->image.has_value()) {
+        return;
     }
+    queue_.write(data);
 }
 
 void SDLWorker::start() {
+
     int arduinoSocket = socket(AF_INET, SOCK_DGRAM, 0);
     if (arduinoSocket < 0) {
         std::cerr << "Error creating socket" << std::endl;
@@ -40,44 +40,48 @@ void SDLWorker::start() {
 
     auto sendUDP = [&](const char* message) {
         std::cout << "UDP: " << message << std::endl;
-        sendto(arduinoSocket, message, strlen(message), 0, 
-              (struct sockaddr*)&arduinoAddr, sizeof(arduinoAddr));
+        sendto(arduinoSocket, message, strlen(message), 0,
+               (struct sockaddr*)&arduinoAddr, sizeof(arduinoAddr));
     };
 
     // 1. Initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError() << std::endl;
+        std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError()
+                  << std::endl;
     }
 
     int imgFlags = IMG_INIT_JPG;
     if (!(IMG_Init(imgFlags) & imgFlags)) {
-        std::cerr << "SDL_image could not initialize! SDL_image Error: " << IMG_GetError() << std::endl;
+        std::cerr << "SDL_image could not initialize! SDL_image Error: "
+                  << IMG_GetError() << std::endl;
     }
 
     // 2. Create a window (Required to capture keyboard events)
     SDL_Window* window = SDL_CreateWindow(
-        "Robot Controller (click here)",
-        SDL_WINDOWPOS_UNDEFINED,
-        SDL_WINDOWPOS_UNDEFINED,
-        640,
-        480,
-        SDL_WINDOW_SHOWN
-    );
+        "Robot Controller (click here)", SDL_WINDOWPOS_UNDEFINED,
+        SDL_WINDOWPOS_UNDEFINED, 640, 480, SDL_WINDOW_SHOWN);
 
     if (window == nullptr) {
-        std::cerr << "Window could not be created! SDL_Error: " << SDL_GetError() << std::endl;
+        std::cerr << "Window could not be created! SDL_Error: "
+                  << SDL_GetError() << std::endl;
     }
 
     //  Test renderer for the window
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    SDL_Renderer* renderer =
+        SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     if (renderer == nullptr) {
-        std::cerr << "Renderer could not be created! SDL_Error: " << SDL_GetError() << std::endl;
+        std::cerr << "Renderer could not be created! SDL_Error: "
+                  << SDL_GetError() << std::endl;
+        isRunning = false;
+        return;
     }
 
     SDL_Texture* testTexture = nullptr;
-    SDL_Surface* loadedSurface = IMG_Load("assets/TestImageSDLRenderingSpongebob.jpg"); 
+    SDL_Surface* loadedSurface =
+        IMG_Load("assets/TestImageSDLRenderingSpongebob.jpg");
     if (loadedSurface == nullptr) {
-        std::cerr << "Unable to load test image! SDL_image Error: " << IMG_GetError() << std::endl;
+        std::cerr << "Unable to load test image! SDL_image Error: "
+                  << IMG_GetError() << std::endl;
     } else {
         testTexture = SDL_CreateTextureFromSurface(renderer, loadedSurface);
         SDL_FreeSurface(loadedSurface); // Free the RAM surface
@@ -86,7 +90,9 @@ void SDLWorker::start() {
     // 3. Main Loop Flag
     SDL_Event event;
 
-    std::cout << "Controller started. Press W, A, S, D to drive. Close window to quit." << std::endl;
+    std::cout << "Controller started. Press W, A, S, D to drive. Close window "
+                 "to quit."
+              << std::endl;
 
     auto sensorData = std::make_shared<SensorData>();
 
@@ -101,33 +107,52 @@ void SDLWorker::start() {
 
     // bool wasLedOn = false;
 
+    latestData_ = std::make_shared<SensorData>();
+
     // 4. The Event Loop
     while (isRunning) {
-        
         // ==========================================
         // PHASE 1: INPUT (Process all pending events)
         // ==========================================
-        while (SDL_PollEvent(&event) != 0) {   
-            
+        while (SDL_PollEvent(&event) != 0) {
+
             // Handle Key Pressed Down
             if (event.type == SDL_KEYDOWN) {
-               if (event.key.repeat == 0) {
+                if (event.key.repeat == 0) {
                     switch (event.key.keysym.sym) {
-                        case SDLK_w: sensorData->userInput.value().forward = true; break;
-                        case SDLK_a: sensorData->userInput.value().left = true; break;
-                        case SDLK_s: sensorData->userInput.value().backward = true; break;
-                        case SDLK_d: sensorData->userInput.value().right = true; break;
-                        case SDLK_ESCAPE: isRunning = false; break;
+                    case SDLK_w:
+                        sensorData->userInput.value().forward = true;
+                        break;
+                    case SDLK_a:
+                        sensorData->userInput.value().left = true;
+                        break;
+                    case SDLK_s:
+                        sensorData->userInput.value().backward = true;
+                        break;
+                    case SDLK_d:
+                        sensorData->userInput.value().right = true;
+                        break;
+                    case SDLK_ESCAPE:
+                        isRunning = false;
+                        break;
                     }
                 }
             }
             // Handle Key Released
             else if (event.type == SDL_KEYUP) {
                 switch (event.key.keysym.sym) {
-                    case SDLK_w: sensorData->userInput.value().forward = false; break;
-                    case SDLK_a: sensorData->userInput.value().left = false; break;
-                    case SDLK_s: sensorData->userInput.value().backward = false; break;
-                    case SDLK_d: sensorData->userInput.value().right = false; break;
+                case SDLK_w:
+                    sensorData->userInput.value().forward = false;
+                    break;
+                case SDLK_a:
+                    sensorData->userInput.value().left = false;
+                    break;
+                case SDLK_s:
+                    sensorData->userInput.value().backward = false;
+                    break;
+                case SDLK_d:
+                    sensorData->userInput.value().right = false;
+                    break;
                 }
             }
             // Optional: Handle user clicking the 'X' on the window
@@ -144,23 +169,20 @@ void SDLWorker::start() {
         bool leftKeyPressed = sensorData->userInput.value().left;
         bool rightKeyPressed = sensorData->userInput.value().right;
 
-        // Note: Your comment says "Only send packet if the state CHANGED" 
+        // Note: Your comment says "Only send packet if the state CHANGED"
         // but this logic still fires every single frame the key is held!
         if (forwardKeyPressed) {
             sendUDP("MOTOR, FORWARD");
-            dispatcher_->enqueueData(sensorData); 
-        } 
-        else if (backwardKeyPressed) {
+            dispatcher_->enqueueData(sensorData);
+        } else if (backwardKeyPressed) {
             sendUDP("MOTOR, BACKWARD");
-            dispatcher_->enqueueData(sensorData);  
-        }
-        else if (leftKeyPressed) {
+            dispatcher_->enqueueData(sensorData);
+        } else if (leftKeyPressed) {
             sendUDP("MOTOR, LEFT");
-            dispatcher_->enqueueData(sensorData);  
-        }
-        else if (rightKeyPressed) {
+            dispatcher_->enqueueData(sensorData);
+        } else if (rightKeyPressed) {
             sendUDP("MOTOR, RIGHT");
-            dispatcher_->enqueueData(sensorData);  
+            dispatcher_->enqueueData(sensorData);
         }
 
         // ==========================================
@@ -171,53 +193,65 @@ void SDLWorker::start() {
 
         std::shared_ptr<SensorData> currentData;
         {
-            std::lock_guard<std::mutex> lock(dataMutex_);
-            currentData = latestData_;
-        }
-
-        if (currentData && currentData->image.has_value() && !currentData->image->jpegBuffer.empty()) {
-            
-            SDL_RWops* rw = SDL_RWFromConstMem(
-                currentData->image->jpegBuffer.data(), 
-                currentData->image->jpegBuffer.size()
-            );
-
-            if (rw != nullptr) {
-                SDL_Surface* surface = IMG_Load_RW(rw, 1); 
-                
-                if (surface != nullptr) {
-                    SDL_Texture* frameTexture = SDL_CreateTextureFromSurface(renderer, surface);
-                    
-                    if (frameTexture != nullptr) {
-                        SDL_RenderCopy(renderer, frameTexture, NULL, NULL);
-                        SDL_DestroyTexture(frameTexture); 
-                        //currentData->image->jpegBuffer.clear();
-                    } else {
-                        // ---------------------------------------------------------
-                        // LOG 4: Texture Creation Error
-                        // ---------------------------------------------------------
-                        std::cerr << "[SDL ERROR] Failed to create texture: " << SDL_GetError() << "\n";
-                    }
-                    SDL_FreeSurface(surface); 
-                } else {
-                    // ---------------------------------------------------------
-                    // LOG 5: JPEG Decoding Error
-                    // ---------------------------------------------------------
-                    std::cerr << "[SDL ERROR] IMG_Load_RW failed to decode JPEG: " << IMG_GetError() << "\n";
+            if (!queue_.isEmpty()) {
+                std::shared_ptr<SensorData> sensorData;
+                if (queue_.read(sensorData)) {
+                    currentData = sensorData;
+                    latestData_ = sensorData;
                 }
             } else {
-                std::cerr << "[SDL ERROR] SDL_RWFromConstMem failed.\n";
+                currentData = latestData_;
             }
-        } else if (testTexture != nullptr) {
-            // SDL_RenderCopy(renderer, testTexture, NULL, NULL);
-        }
 
-        SDL_RenderPresent(renderer);
-            
-        // ==========================================
-        // PHASE 4: WAIT (Control frame rate)
-        // ==========================================
-        SDL_Delay(16); // roughly 60 FPS
+            if (currentData && currentData->image.has_value() &&
+                !currentData->image->jpegBuffer.empty()) {
+
+                SDL_RWops* rw =
+                    SDL_RWFromConstMem(currentData->image->jpegBuffer.data(),
+                                       currentData->image->jpegBuffer.size());
+
+                if (rw != nullptr) {
+                    SDL_Surface* surface = IMG_Load_RW(rw, 1);
+
+                    if (surface != nullptr) {
+                        SDL_Texture* frameTexture =
+                            SDL_CreateTextureFromSurface(renderer, surface);
+
+                        if (frameTexture != nullptr) {
+                            SDL_RenderCopy(renderer, frameTexture, NULL, NULL);
+                            SDL_DestroyTexture(frameTexture);
+                            // currentData->image->jpegBuffer.clear();
+                        } else {
+                            // ---------------------------------------------------------
+                            // LOG 4: Texture Creation Error
+                            // ---------------------------------------------------------
+                            std::cerr
+                                << "[SDL ERROR] Failed to create texture: "
+                                << SDL_GetError() << "\n";
+                        }
+                        SDL_FreeSurface(surface);
+                    } else {
+                        // ---------------------------------------------------------
+                        // LOG 5: JPEG Decoding Error
+                        // ---------------------------------------------------------
+                        std::cerr
+                            << "[SDL ERROR] IMG_Load_RW failed to decode JPEG: "
+                            << IMG_GetError() << "\n";
+                    }
+                } else {
+                    std::cerr << "[SDL ERROR] SDL_RWFromConstMem failed.\n";
+                }
+            } else if (testTexture != nullptr) {
+                // SDL_RenderCopy(renderer, testTexture, NULL, NULL);
+            }
+
+            SDL_RenderPresent(renderer);
+
+            // ==========================================
+            // PHASE 4: WAIT (Control frame rate)
+            // ==========================================
+            SDL_Delay(16); // roughly 60 FPS
+        }
     }
 
     // Cleanup
@@ -226,6 +260,4 @@ void SDLWorker::start() {
     SDL_DestroyWindow(window);
     SDL_Quit();
 }
-void SDLWorker::stop() {
-    isRunning = false;
-}
+void SDLWorker::stop() { isRunning = false; }

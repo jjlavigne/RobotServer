@@ -12,6 +12,18 @@ YoloPetDetectionWorker::YoloPetDetectionWorker(const std::string& modelPath) : q
 
 void YoloPetDetectionWorker::start() {
     std::cout << "YoloPetDetectionWorker started." << std::endl;
+    isRunning_= true;
+    while (isRunning_){
+        if (!queue_.isEmpty()) {
+            std::shared_ptr<SensorData> sensorData;
+            if (queue_.read(sensorData)) {
+                process(sensorData);
+            }
+            else {
+                std::cout << "Queue failed to read" << std::endl;
+            }
+        }
+    }
 }
 
 void YoloPetDetectionWorker::stop() {
@@ -26,6 +38,13 @@ void YoloPetDetectionWorker::process(std::shared_ptr<SensorData> data) {
     if (frame.empty()) return;
 
     detectPets(frame);
+}
+
+void YoloPetDetectionWorker::enqueue(std::shared_ptr<SensorData> data) {
+    if (!data->image.has_value()) {
+        return;
+    }
+    queue_.write(data);
 }
 
 void YoloPetDetectionWorker::detectPets(cv::Mat& frame) {

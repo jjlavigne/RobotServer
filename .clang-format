@@ -1,0 +1,42 @@
+---
+Language: Cpp
+BasedOnStyle: LLVM
+
+# ---------------------------------
+# Indentation Settings
+# ---------------------------------
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+
+# ---------------------------------
+# Brace Rules (One True Brace Style)
+# ---------------------------------
+BreakBeforeBraces: Custom
+BraceWrapping:
+  # Keeps '{' on the same line as 'if', 'for', 'while', etc.
+  AfterControlStatement: Never 
+  
+  # Keeps '} else {' on a single line
+  BeforeElse: false 
+  
+  # Keeps '} catch {' on a single line
+  BeforeCatch: false 
+  
+  # Keeps '} while (' on a single line for do-while loops
+  BeforeWhile: false 
+  
+  # Keeps '{' on the same line as the function definition
+  AfterFunction: false 
+  
+  # Keeps '{' on the same line as class/struct/enum definitions
+  AfterClass: false 
+  AfterStruct: false 
+  AfterEnum: false 
+  AfterNamespace: false 
+
+# ---------------------------------
+# Pointer Alignment (e.g., int* ptr)
+# ---------------------------------
+PointerAlignment: Left
+...
