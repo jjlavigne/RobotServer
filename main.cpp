@@ -8,30 +8,9 @@
 #include "UserInputProcessorWorker.h"
 #include "WorkerManager.h"
 #include "YoloPetDetectionWorker.h"
-#include <cpr/cpr.h>
 #include <iostream>
 
-void testCpr() {
-    std::cout << "Testing CPR connection..." << std::endl;
-
-    // Make a simple GET request to a public test server
-    cpr::Response r = cpr::Get(cpr::Url{"https://httpbin.org/get"});
-
-    // Check the status code (200 means OK/Success)
-    if (r.status_code == 200) {
-        std::cout << "✅ CPR is working! Status: 200" << std::endl;
-        // Optional: print a snippet of the actual response body
-        std::cout << "Response snippet: " << r.text.substr(0, 50) << "..."
-                  << std::endl;
-    } else {
-        std::cout << "❌ CPR Test Failed. Status code: " << r.status_code
-                  << std::endl;
-        std::cout << "Error message: " << r.error.message << std::endl;
-    }
-}
-
 int main() {
-    testCpr();
     std::cout << "Hello, Robot Server!" << std::endl;
     std::vector<std::shared_ptr<SensorDataWorkerInterface>> processors;
     auto userInputProcessor = std::make_shared<UserInputProcessorWorker>();

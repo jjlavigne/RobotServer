@@ -40,10 +40,3 @@ class SensorDataWorkerInterface : public WorkerInterface {
 
     virtual void enqueue(std::shared_ptr<SensorData> data) = 0;
 };
-
-// class Car {};
-
-// void asdfasdf() {
-//     SensorData data = SensorData();
-//     data.detectedObjects = {Object::Dog, Object::Cat};
-// }
