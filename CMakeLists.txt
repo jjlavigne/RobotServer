@@ -16,6 +16,13 @@ set(BUILD_opencv_world ON CACHE BOOL "" FORCE)
 
 add_subdirectory(third-party/opencv)
 
+set(CPR_ENABLE_TESTS OFF CACHE BOOL "" FORCE) # Don't build CPR tests
+set(CPR_CURL_USE_LIBPSL OFF CACHE BOOL "" FORCE)
+add_subdirectory(third-party/cpr)
+
+set(JSON_BuildTests OFF CACHE INTERNAL "")
+add_subdirectory(third-party/json)
+
 include_directories(sensor_data_processors)
 
 add_executable(ROBOTSERVER)

@@ -1,15 +1,37 @@
-#include <iostream>
-#include "StreamProcessor.h"
-#include "WorkerManager.h"
-#include "SensorDataDispatcher.h"
-#include "SDLWorker.h"
-#include "UserInputProcessorWorker.h"
-#include "RemoteWebcamProviderWorker.h"
-#include "SimulatedWebcamSender.h"
+#include "LLMPetDetectionWorker.h"
 #include "PetDetectionWorker.h"
+#include "RemoteWebcamProviderWorker.h"
+#include "SDLWorker.h"
+#include "SensorDataDispatcher.h"
+#include "SimulatedWebcamSender.h"
+#include "StreamProcessor.h"
+#include "UserInputProcessorWorker.h"
+#include "WorkerManager.h"
 #include "YoloPetDetectionWorker.h"
+#include <cpr/cpr.h>
+#include <iostream>
+
+void testCpr() {
+    std::cout << "Testing CPR connection..." << std::endl;
+
+    // Make a simple GET request to a public test server
+    cpr::Response r = cpr::Get(cpr::Url{"https://httpbin.org/get"});
+
+    // Check the status code (200 means OK/Success)
+    if (r.status_code == 200) {
+        std::cout << "✅ CPR is working! Status: 200" << std::endl;
+        // Optional: print a snippet of the actual response body
+        std::cout << "Response snippet: " << r.text.substr(0, 50) << "..."
+                  << std::endl;
+    } else {
+        std::cout << "❌ CPR Test Failed. Status code: " << r.status_code
+                  << std::endl;
+        std::cout << "Error message: " << r.error.message << std::endl;
+    }
+}
 
 int main() {
+    testCpr();
     std::cout << "Hello, Robot Server!" << std::endl;
     std::vector<std::shared_ptr<SensorDataWorkerInterface>> processors;
     auto userInputProcessor = std::make_shared<UserInputProcessorWorker>();
@@ -18,26 +40,28 @@ int main() {
 
     std::vector<std::shared_ptr<WorkerInterface>> workers;
     std::vector<std::shared_ptr<WorkerInterface>> asyncWorkers;
-    
+
     auto sdlWorker = std::make_shared<SDLWorker>(dispatcher);
-    auto remoteWebcamProviderWorker = std::make_shared<RemoteWebcamProviderWorker>(dispatcher);
-    //auto petDetectionWorker = std::make_shared<PetDetectionWorker>();
-    auto yoloWorker = std::make_shared<YoloPetDetectionWorker>("models/yolov5n.onnx");
-    //auto simulatedWebcamSender = std::make_shared<SimulatedWebcamSender>();
+    auto remoteWebcamProviderWorker =
+        std::make_shared<RemoteWebcamProviderWorker>(dispatcher);
+    // auto petDetectionWorker = std::make_shared<PetDetectionWorker>();
+    auto yoloWorker =
+        std::make_shared<YoloPetDetectionWorker>("models/yolo26n.onnx");
+    // auto simulatedWebcamSender = std::make_shared<SimulatedWebcamSender>();
 
     dispatcher->addProcessor(sdlWorker);
-    //dispatcher->addProcessor(petDetectionWorker);
+    // dispatcher->addProcessor(petDetectionWorker);
     dispatcher->addProcessor(yoloWorker);
 
     asyncWorkers.push_back(remoteWebcamProviderWorker);
     asyncWorkers.push_back(sdlWorker);
-    //asyncWorkers.push_back(petDetectionWorker);
+    // asyncWorkers.push_back(petDetectionWorker);
     asyncWorkers.push_back(yoloWorker);
-    //asyncWorkers.push_back(simulatedWebcamSender);
+    // asyncWorkers.push_back(simulatedWebcamSender);
 
     WorkerManager workerManager(dispatcher, workers, asyncWorkers);
     workerManager.start();
-    
+
     char input;
     std::cin >> input;
     while (input != 'q') {
@@ -51,6 +75,5 @@ int main() {
     // TODO: write code that blocks and waits for input to end the program
     // when key is pressed, call workerManager.stop
 
-    
     return 0;
 }

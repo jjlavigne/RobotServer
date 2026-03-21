@@ -43,6 +43,8 @@ target_link_libraries(sensor_data_processors
     Folly::folly
     SDL2::SDL2
     opencv_world
+    cpr::cpr
+    nlohmann_json::nlohmann_json
 )
 
 target_sources(sensor_data_processors

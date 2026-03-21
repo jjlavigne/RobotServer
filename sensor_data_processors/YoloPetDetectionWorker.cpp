@@ -1,25 +1,31 @@
 #include "YoloPetDetectionWorker.h"
 #include <iostream>
 
-YoloPetDetectionWorker::YoloPetDetectionWorker(const std::string& modelPath) : queue_(100) {
-    std::cout << "[YOLO] Loading YOLOv5 Pet Detection Model..." << std::endl;
+YoloPetDetectionWorker::YoloPetDetectionWorker(const std::string& modelPath)
+    : queue_(100) {
+    std::cout << "[YOLO] Loading YOLOv26 Pet Detection Model..." << std::endl;
     net = cv::dnn::readNetFromONNX(modelPath);
-    
+
     // Use CUDA if available, otherwise CPU
     net.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
-    net.setPreferableTarget(cv::dnn::DNN_TARGET_CPU); 
+    net.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
 }
 
 void YoloPetDetectionWorker::start() {
     std::cout << "YoloPetDetectionWorker started." << std::endl;
-    isRunning_= true;
-    while (isRunning_){
+    isRunning_ = true;
+    int numFramesSinceLastProcessed = 0;
+    while (isRunning_) {
+        // std::cout << queue_.sizeGuess() << std::endl;
         if (!queue_.isEmpty()) {
             std::shared_ptr<SensorData> sensorData;
             if (queue_.read(sensorData)) {
-                process(sensorData);
-            }
-            else {
+                if (numFramesSinceLastProcessed > 4) {
+                    process(sensorData);
+                    numFramesSinceLastProcessed = 0;
+                }
+                ++numFramesSinceLastProcessed;
+            } else {
                 std::cout << "Queue failed to read" << std::endl;
             }
         }
@@ -28,14 +34,17 @@ void YoloPetDetectionWorker::start() {
 
 void YoloPetDetectionWorker::stop() {
     std::cout << "YoloPetDetectionWorker stopped." << std::endl;
+    isRunning_ = false;
 }
 
 void YoloPetDetectionWorker::process(std::shared_ptr<SensorData> data) {
-    if (!data || !data->image.has_value() || data->image->jpegBuffer.empty()) return;
+    if (!data || !data->image.has_value() || data->image->jpegBuffer.empty())
+        return;
 
     // Decode the JPEG buffer shared from the RemoteWebcamProvider
     cv::Mat frame = cv::imdecode(data->image->jpegBuffer, cv::IMREAD_COLOR);
-    if (frame.empty()) return;
+    if (frame.empty())
+        return;
 
     detectPets(frame);
 }
@@ -47,64 +56,121 @@ void YoloPetDetectionWorker::enqueue(std::shared_ptr<SensorData> data) {
     queue_.write(data);
 }
 
+// void YoloPetDetectionWorker::detectPets(cv::Mat& frame) {
+//     // 1. Pre-process: 640x640, scale 1/255, swap BGR to RGB
+//     cv::Mat blob = cv::dnn::blobFromImage(frame, 1 / 255.0, cv::Size(640,
+//     640),
+//                                           cv::Scalar(0, 0, 0), true, false);
+//     net.setInput(blob);
+
+//     // 2. Inference
+//     std::vector<cv::Mat> outputs;
+//     net.forward(outputs, net.getUnconnectedOutLayersNames());
+
+//     cv::Mat output = outputs[0];
+
+//     // Safety: Flatten the [1, 300, 6] tensor into a [300, 6] matrix
+//     if (output.dims == 3) {
+//         int sz[] = {output.size[1], output.size[2]};
+//         output = cv::Mat(2, sz, CV_32F, output.ptr<float>());
+//     }
+
+//     // Scaling factors to map 640x640 detections back to original frame size
+//     float scaleX = (float)frame.cols / 640.0f;
+//     float scaleY = (float)frame.rows / 640.0f;
+
+//     for (int i = 0; i < output.rows; ++i) {
+//         // E2E Row Format: [x1, y1, x2, y2, score, class_id]
+//         float confidence = output.at<float>(i, 4);
+
+//         if (confidence > confidenceThreshold) {
+//             int classId = static_cast<int>(output.at<float>(i, 5));
+
+//             // Standard COCO: 15 = Cat, 16 = Dog
+//             if (classId == DOG_CLASS_ID || classId == CAT_CLASS_ID) {
+//                 // Coordinates are already Top-Left and Bottom-Right
+//                 float x1 = output.at<float>(i, 0) * scaleX;
+//                 float y1 = output.at<float>(i, 1) * scaleY;
+//                 float x2 = output.at<float>(i, 2) * scaleX;
+//                 float y2 = output.at<float>(i, 3) * scaleY;
+
+//                 std::string label = (classId == DOG_CLASS_ID) ? "DOG" :
+//                 "CAT";
+
+//                 // Logging the detection
+//                 std::cout << ">>> " << label
+//                           << " DETECTED! Confidence: " << (confidence * 100)
+//                           << "% "
+//                           << "at [" << x1 << ", " << y1 << "]" << std::endl;
+//             }
+//         }
+//     }
+// }
+
 void YoloPetDetectionWorker::detectPets(cv::Mat& frame) {
-    // 1. Pre-process
-    cv::Mat blob = cv::dnn::blobFromImage(frame, 1/255.0, cv::Size(640, 640), cv::Scalar(0,0,0), true, false);
+    static const std::vector<std::string> classNames = {
+        "person",        "bicycle",      "car",
+        "motorcycle",    "airplane",     "bus",
+        "train",         "truck",        "boat",
+        "traffic light", "fire hydrant", "stop sign",
+        "parking meter", "bench",        "bird",
+        "cat",           "dog",          "horse",
+        "sheep",         "cow",          "elephant",
+        "bear",          "zebra",        "giraffe",
+        "backpack",      "umbrella",     "handbag",
+        "tie",           "suitcase",     "frisbee",
+        "skis",          "snowboard",    "sports ball",
+        "kite",          "baseball bat", "baseball glove",
+        "skateboard",    "surfboard",    "tennis racket",
+        "bottle",        "wine glass",   "cup",
+        "fork",          "knife",        "spoon",
+        "bowl",          "banana",       "apple",
+        "sandwich",      "orange",       "broccoli",
+        "carrot",        "hot dog",      "pizza",
+        "donut",         "cake",         "chair",
+        "couch",         "potted plant", "bed",
+        "dining table",  "toilet",       "tv",
+        "laptop",        "mouse",        "remote",
+        "keyboard",      "cell phone",   "microwave",
+        "oven",          "toaster",      "sink",
+        "refrigerator",  "book",         "clock",
+        "vase",          "scissors",     "teddy bear",
+        "hair drier",    "toothbrush"};
+
+    cv::Mat blob = cv::dnn::blobFromImage(frame, 1 / 255.0, cv::Size(640, 640),
+                                          cv::Scalar(0, 0, 0), true, false);
     net.setInput(blob);
 
-    // 2. Inference
     std::vector<cv::Mat> outputs;
     net.forward(outputs, net.getUnconnectedOutLayersNames());
-
     cv::Mat output = outputs[0];
-    
-    // Fix the 3D tensor shape crash
+
     if (output.dims == 3) {
-        int sz[] = { output.size[1], output.size[2] };
+        int sz[] = {output.size[1], output.size[2]};
         output = cv::Mat(2, sz, CV_32F, output.ptr<float>());
     }
 
-    cv::transpose(output, output);
-
-    // Data structures to hold candidates before filtering
-    std::vector<int> class_ids;
-    std::vector<float> confidences;
-    std::vector<cv::Rect> boxes;
+    // Header for the frame's detections
+    std::cout << "\n--- New Frame Analysis ---" << std::endl;
 
     for (int i = 0; i < output.rows; ++i) {
-        cv::Mat row = output.row(i);
-        cv::Mat scores = row.colRange(4, row.cols);
-        cv::Point classIdPoint;
-        double confidence;
-        cv::minMaxLoc(scores, 0, &confidence, 0, &classIdPoint);
+        float confidence = output.at<float>(i, 4);
 
-        if (confidence > confidenceThreshold) {
-            int classId = classIdPoint.x;
-            if (classId == DOG_CLASS_ID || classId == CAT_CLASS_ID) {
-                // YOLOv8/12 coords are: [center_x, center_y, width, height]
-                float x = row.at<float>(0);
-                float y = row.at<float>(1);
-                float w = row.at<float>(2);
-                float h = row.at<float>(3);
+        // Setting this to 0.30 catches almost everything clearly visible
+        if (confidence > 0.30) {
+            int classId = static_cast<int>(output.at<float>(i, 5));
+            std::string label =
+                (classId < classNames.size()) ? classNames[classId] : "unknown";
 
-                // Convert to top-left corner for OpenCV Rect
-                int left = static_cast<int>(x - w/2);
-                int top = static_cast<int>(y - h/2);
-                
-                boxes.push_back(cv::Rect(left, top, static_cast<int>(w), static_cast<int>(h)));
-                confidences.push_back(static_cast<float>(confidence));
-                class_ids.push_back(classId);
+            // Print EVERY object found above the threshold
+            std::cout << "[FOUND] " << label << " (" << (confidence * 100)
+                      << "%)" << std::endl;
+
+            // Keep your specific pet logic active for the robot's "brain"
+            if (classId == 16 || classId == 15) { // 16=Dog, 15=Cat
+                std::cout << ">>> CRITICAL: Pet target identified!"
+                          << std::endl;
             }
         }
-    }
-
-    // 3. Non-Maximum Suppression (The key to stopping the "flood" of detections)
-    std::vector<int> indices;
-    cv::dnn::NMSBoxes(boxes, confidences, confidenceThreshold, 0.45f, indices);
-
-    for (int idx : indices) {
-        std::string label = (class_ids[idx] == DOG_CLASS_ID) ? "DOG" : "CAT";
-        std::cout << "!!! " << label << " CONFIRMED !!! Confidence: " 
-                  << (confidences[idx] * 100) << "%" << std::endl;
     }
 }
