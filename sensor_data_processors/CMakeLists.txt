@@ -59,6 +59,7 @@ target_sources(sensor_data_processors
    SimulatedWebcamSender.cpp
    PetDetectionWorker.cpp
    YoloPetDetectionWorker.cpp
+   LLMPetDetectionWorker.cpp
 
   PUBLIC
     FILE_SET myHeaders
@@ -78,6 +79,7 @@ target_sources(sensor_data_processors
       SimulatedWebcamSender.h
       PetDetectionWorker.h
       YoloPetDetectionWorker.h
+      LLMPetDetectionWorker.h
 )
 
 target_compile_definitions(sensor_data_processors
