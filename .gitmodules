@@ -4,3 +4,9 @@
 [submodule "third-party/opencv"]
 	path = third-party/opencv
 	url = https://github.com/opencv/opencv.git
+[submodule "third-party/cpr"]
+	path = third-party/cpr
+	url = https://github.com/libcpr/cpr.git
+[submodule "third-party/json"]
+	path = third-party/json
+	url = https://github.com/nlohmann/json.git
