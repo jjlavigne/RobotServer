@@ -1,22 +1,20 @@
 #include "RemoteWebcamProviderWorker.h"
-#include <iostream>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <unistd.h>
 #include <cstring>
+#include <iostream>
 #include <map>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
 #include <vector>
 
-
-RemoteWebcamProviderWorker::RemoteWebcamProviderWorker(std::shared_ptr<SensorDataDispatcher> dispatcher) 
+RemoteWebcamProviderWorker::RemoteWebcamProviderWorker(
+    std::shared_ptr<SensorDataDispatcher> dispatcher)
     : dispatcher_(dispatcher), sockfd_(-1), running_(false) {}
 
-RemoteWebcamProviderWorker::~RemoteWebcamProviderWorker() {
-    stop();
-}
+RemoteWebcamProviderWorker::~RemoteWebcamProviderWorker() { stop(); }
 
 void RemoteWebcamProviderWorker::start() {
-    //std::cout << "RWP start" << std::endl;
+    // std::cout << "RWP start" << std::endl;
     running_ = true;
 
     sockfd_ = socket(AF_INET, SOCK_DGRAM, 0);
@@ -34,22 +32,25 @@ void RemoteWebcamProviderWorker::start() {
     struct sockaddr_in servaddr;
     std::memset(&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = INADDR_ANY; 
+    servaddr.sin_addr.s_addr = INADDR_ANY;
     servaddr.sin_port = htons(5005);
 
-    if (bind(sockfd_, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
+    if (bind(sockfd_, (const struct sockaddr*)&servaddr, sizeof(servaddr)) <
+        0) {
         perror("Bind failed");
         close(sockfd_);
         return;
     }
 
-    std::cout << "RemoteWebcamProviderWorker started on port 5005..." << std::endl;
+    std::cout << "RemoteWebcamProviderWorker started on port 5005..."
+              << std::endl;
 
     receiveLoop();
 }
 
 void RemoteWebcamProviderWorker::stop() {
-    if (!running_) return;
+    if (!running_)
+        return;
     running_ = false;
 
     if (sockfd_ != -1) {
@@ -61,19 +62,21 @@ void RemoteWebcamProviderWorker::stop() {
 
 void RemoteWebcamProviderWorker::receiveLoop() {
     // 1. INCREASE BUFFER SIZE to safely hold the 1410 byte packets
-    uint8_t buffer[2048]; 
-    std::cout << "buffer created" << std::endl;
+    uint8_t buffer[2048];
 
     while (running_) {
-        ssize_t n = recvfrom(sockfd_, buffer, sizeof(buffer), 0, nullptr, nullptr);
-        //std::cout << "N: " << n << std::endl;
-        
+        ssize_t n =
+            recvfrom(sockfd_, buffer, sizeof(buffer), 0, nullptr, nullptr);
+        // std::cout << "N: " << n << std::endl;
+
         if (n > 0) {
             // 2. Check if it's too small for our 10-byte header
             if (n < 10) {
                 // Swapped \n for std::endl to fix Docker log buffering
-                std::cout << "[RWP ERROR] Packet too small (" << n << " bytes)" << std::endl;
-                continue; // Skip the rest of the loop and wait for the next packet
+                std::cout << "[RWP ERROR] Packet too small (" << n << " bytes)"
+                          << std::endl;
+                continue; // Skip the rest of the loop and wait for the next
+                          // packet
             }
 
             // 3. Safely unpack the binary header (matching Python's '<IHHH')
@@ -88,9 +91,9 @@ void RemoteWebcamProviderWorker::receiveLoop() {
             std::memcpy(&chunk_size, buffer + 8, sizeof(chunk_size));
 
             // Swapped \n for std::endl to fix Docker log buffering
-            //std::cout << "[RWP] Got frame " << frame_id << " | chunk " 
-                      //<< chunk_index << "/" << total_chunks 
-                      //<< " | size: " << chunk_size << " bytes" << std::endl;
+            // std::cout << "[RWP] Got frame " << frame_id << " | chunk "
+            //<< chunk_index << "/" << total_chunks
+            //<< " | size: " << chunk_size << " bytes" << std::endl;
 
             // 4. Extract the payload (the actual JPEG bytes)
             std::vector<uint8_t> payload(buffer + 10, buffer + 10 + chunk_size);
@@ -102,26 +105,28 @@ void RemoteWebcamProviderWorker::receiveLoop() {
             if (frameBuffers_[frame_id].size() == total_chunks) {
 
                 // Swapped \n for std::endl to fix Docker log buffering
-                //std::cout << "[RWP SUCCESS] Frame " << frame_id << " fully assembled! Sending to SDL." << std::endl;
-                
+                // std::cout << "[RWP SUCCESS] Frame " << frame_id << " fully
+                // assembled! Sending to SDL." << std::endl;
+
                 // Assemble the full JPEG
                 auto data = std::make_shared<SensorData>();
                 data->image = ImageData();
-                
+
                 for (uint16_t i = 0; i < total_chunks; ++i) {
                     data->image->jpegBuffer.insert(
-                        data->image->jpegBuffer.end(), 
-                        frameBuffers_[frame_id][i].begin(), 
-                        frameBuffers_[frame_id][i].end()
-                    );
+                        data->image->jpegBuffer.end(),
+                        frameBuffers_[frame_id][i].begin(),
+                        frameBuffers_[frame_id][i].end());
                 }
 
                 // Send to SDL Worker
                 dispatcher_->enqueueData(data);
 
                 // Clean up old frames to prevent memory leaks!
-                // We erase this frame, and any older frames that were incomplete
-                for (auto it = frameBuffers_.begin(); it != frameBuffers_.end(); ) {
+                // We erase this frame, and any older frames that were
+                // incomplete
+                for (auto it = frameBuffers_.begin();
+                     it != frameBuffers_.end();) {
                     if (it->first <= frame_id) {
                         it = frameBuffers_.erase(it);
                     } else {

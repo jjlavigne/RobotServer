@@ -60,6 +60,7 @@ target_sources(sensor_data_processors
    PetDetectionWorker.cpp
    YoloPetDetectionWorker.cpp
    LLMPetDetectionWorker.cpp
+   RobotControlWorker.cpp
 
   PUBLIC
     FILE_SET myHeaders
@@ -80,6 +81,7 @@ target_sources(sensor_data_processors
       PetDetectionWorker.h
       YoloPetDetectionWorker.h
       LLMPetDetectionWorker.h
+      RobotControlWorker.h
 )
 
 target_compile_definitions(sensor_data_processors

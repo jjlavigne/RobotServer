@@ -1,6 +1,7 @@
 #include "LLMPetDetectionWorker.h"
 #include "PetDetectionWorker.h"
 #include "RemoteWebcamProviderWorker.h"
+#include "RobotControlWorker.h"
 #include "SDLWorker.h"
 #include "SensorDataDispatcher.h"
 #include "SimulatedWebcamSender.h"
@@ -28,11 +29,13 @@ int main() {
     //     std::make_shared<YoloPetDetectionWorker>("models/yolo26n.onnx");
     // auto simulatedWebcamSender = std::make_shared<SimulatedWebcamSender>();
     auto llmWorker = std::make_shared<LLMPetDetectionWorker>(dispatcher);
+    auto robotControlWorker = std::make_shared<RobotControlWorker>();
 
     dispatcher->addProcessor(sdlWorker);
     // dispatcher->addProcessor(petDetectionWorker);
     // dispatcher->addProcessor(yoloWorker);
     dispatcher->addProcessor(llmWorker);
+    dispatcher->addProcessor(robotControlWorker);
 
     asyncWorkers.push_back(remoteWebcamProviderWorker);
     asyncWorkers.push_back(sdlWorker);
@@ -40,6 +43,7 @@ int main() {
     // asyncWorkers.push_back(yoloWorker);
     // asyncWorkers.push_back(simulatedWebcamSender);
     asyncWorkers.push_back(llmWorker);
+    asyncWorkers.push_back(robotControlWorker);
 
     WorkerManager workerManager(dispatcher, workers, asyncWorkers);
     workerManager.start();

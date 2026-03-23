@@ -9,9 +9,6 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-const char* ARDUINO_IP = "192.168.4.25";
-const int ARDUINO_PORT = 4210;
-
 SDLWorker::SDLWorker(std::shared_ptr<SensorDataDispatcherInterface> dispatcher)
     : dispatcher_(std::move(dispatcher)),
       queue_(folly::ProducerConsumerQueue<std::shared_ptr<SensorData>>(100)) {}
@@ -26,23 +23,6 @@ void SDLWorker::enqueue(std::shared_ptr<SensorData> data) {
 }
 
 void SDLWorker::start() {
-
-    int arduinoSocket = socket(AF_INET, SOCK_DGRAM, 0);
-    if (arduinoSocket < 0) {
-        std::cerr << "Error creating socket" << std::endl;
-        return;
-    }
-
-    struct sockaddr_in arduinoAddr;
-    arduinoAddr.sin_family = AF_INET;
-    arduinoAddr.sin_port = htons(ARDUINO_PORT);
-    inet_pton(AF_INET, ARDUINO_IP, &arduinoAddr.sin_addr);
-
-    auto sendUDP = [&](const char* message) {
-        std::cout << "UDP: " << message << std::endl;
-        sendto(arduinoSocket, message, strlen(message), 0,
-               (struct sockaddr*)&arduinoAddr, sizeof(arduinoAddr));
-    };
 
     // 1. Initialize SDL
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -161,32 +141,7 @@ void SDLWorker::start() {
             }
         } // <--- IMPORTANT: The event loop MUST close here!
 
-        // ==========================================
-        // PHASE 2: UPDATE (Game logic & Network)
-        // ==========================================
-        bool forwardKeyPressed = sensorData->userInput.value().forward;
-        bool backwardKeyPressed = sensorData->userInput.value().backward;
-        bool leftKeyPressed = sensorData->userInput.value().left;
-        bool rightKeyPressed = sensorData->userInput.value().right;
-
-        // Note: Your comment says "Only send packet if the state CHANGED"
-        // but this logic still fires every single frame the key is held!
-        if (forwardKeyPressed) {
-            sendUDP("MOTOR, FORWARD");
-            dispatcher_->enqueueData(sensorData);
-        } else if (backwardKeyPressed) {
-            sendUDP("MOTOR, BACKWARD");
-            dispatcher_->enqueueData(sensorData);
-        } else if (leftKeyPressed) {
-            sendUDP("MOTOR, LEFT");
-            dispatcher_->enqueueData(sensorData);
-        } else if (rightKeyPressed) {
-            sendUDP("MOTOR, RIGHT");
-            dispatcher_->enqueueData(sensorData);
-        } else {
-            sendUDP("MOTOR, STOP");
-            dispatcher_->enqueueData(sensorData);
-        }
+        dispatcher_->enqueueData(sensorData);
 
         // ==========================================
         // PHASE 3: RENDER (Draw the current frame)
@@ -258,7 +213,6 @@ void SDLWorker::start() {
     }
 
     // Cleanup
-    close(arduinoSocket);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();

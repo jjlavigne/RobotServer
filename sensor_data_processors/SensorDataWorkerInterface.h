@@ -14,6 +14,13 @@ struct UserInputData {
     bool right = false;
 };
 
+struct LLMInputData {
+    bool forward = false;
+    bool backward = false;
+    bool left = false;
+    bool right = false;
+};
+
 struct ShapeData {
     int x, y, width, height;
     int r, g, b; // Added color specifications!
@@ -25,6 +32,7 @@ struct ImageData {
 
 struct SensorData {
     std::optional<UserInputData> userInput;
+    std::optional<LLMInputData> llmInput;
     std::optional<ShapeData> shape;
     std::optional<ImageData> image;
     std::optional<std::vector<int>> detectedObjects;

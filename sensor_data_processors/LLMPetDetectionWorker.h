@@ -19,11 +19,13 @@ class LLMPetDetectionWorker : public SensorDataWorkerInterface {
     void enqueue(std::shared_ptr<SensorData> ddata) override;
 
   private:
-    std::optional<Object>
-    askGeminiForPet(const std::vector<uint8_t>& imageBuffer);
+    std::optional<Object> askGemini(const std::vector<uint8_t>& imageBuffer);
 
     std::shared_ptr<SensorDataDispatcherInterface> dispatcher_;
     folly::ProducerConsumerQueue<std::shared_ptr<SensorData>> queue_;
     std::string apiKey_;
     std::atomic<bool> isRunning_{false};
+    std::vector<std::shared_ptr<SensorData>> cachedImages_ =
+        std::vector<std::shared_ptr<SensorData>>(10);
+    int cachedImagesIndex_ = 0;
 };
