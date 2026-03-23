@@ -9,7 +9,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-const char* ARDUINO_IP = "192.168.7.23";
+const char* ARDUINO_IP = "192.168.4.25";
 const int ARDUINO_PORT = 4210;
 
 SDLWorker::SDLWorker(std::shared_ptr<SensorDataDispatcherInterface> dispatcher)
@@ -182,6 +182,9 @@ void SDLWorker::start() {
             dispatcher_->enqueueData(sensorData);
         } else if (rightKeyPressed) {
             sendUDP("MOTOR, RIGHT");
+            dispatcher_->enqueueData(sensorData);
+        } else {
+            sendUDP("MOTOR, STOP");
             dispatcher_->enqueueData(sensorData);
         }
 

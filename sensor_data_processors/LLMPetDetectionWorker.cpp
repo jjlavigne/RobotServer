@@ -83,14 +83,28 @@ void LLMPetDetectionWorker::start() {
     isRunning_ = true;
     while (isRunning_) {
         if (!queue_.isEmpty()) {
-            std::shared_ptr<SensorData> sensorData;
-            if (queue_.read(sensorData)) {
-                process(sensorData);
-                std::this_thread::sleep_for(std::chrono::seconds(15));
-            } else {
-                std::cout << "Queue failed to read" << std::endl;
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+            std::shared_ptr<SensorData> latestData = nullptr;
+            std::shared_ptr<SensorData> tempData;
+
+            // Read every frame currently stuck in the traffic jam.
+            // This loop quickly empties the queue and leaves us with only the
+            // freshest frame.
+            while (queue_.read(tempData)) {
+                latestData = tempData;
             }
+
+            // Now, only send that single, freshest frame to Gemini!
+            if (latestData) {
+                process(latestData);
+
+                // Wait 10 seconds so Google doesn't block us
+                std::this_thread::sleep_for(std::chrono::seconds(10));
+            }
+
+        } else {
+            // CPU SAVER: Don't spin at 100% CPU when the queue is empty
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     }
 }
