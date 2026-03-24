@@ -98,7 +98,7 @@ void LLMPetDetectionWorker::start() {
                 process(latestData);
 
                 // Wait 10 seconds so Google doesn't block us
-                std::this_thread::sleep_for(std::chrono::seconds(10));
+                std::this_thread::sleep_for(std::chrono::seconds(2));
             }
 
         } else {
@@ -168,7 +168,9 @@ LLMPetDetectionWorker::askGemini(const std::vector<uint8_t>& imageBuffer) {
           "- For 'forward' or 'backward' (distance in feet): 0.5, 1.0, 1.5, "
           "2.0, 2.5, 3.0, 3.5, 4.0, 4.5, or 5.0. "
           "- For 'left' or 'right' (rotation in degrees): 45.0 or 90.0. "
-          "- For 'stop': 0.0."}});
+          "- For 'stop': 0.0."
+          "'movementReason' must be a string. Give reasoning behind your "
+          "movement choice."}});
 
     // 3. Loop through history and add them to the payload
     for (const auto& pastData : cachedImages_) {
@@ -201,7 +203,8 @@ LLMPetDetectionWorker::askGemini(const std::vector<uint8_t>& imageBuffer) {
               {"movementType",
                {{"type", "STRING"},
                 {"enum", {"forward", "backward", "left", "right", "stop"}}}},
-              {"movementValue", {{"type", "NUMBER"}}}}},
+              {"movementValue", {{"type", "NUMBER"}}},
+              {"movementReason", {{"type", "STRING"}}}}},
             {"required", json::array({"detectedAnimal", "movementType",
                                       "movementValue"})}}}}}};
 
@@ -224,19 +227,30 @@ LLMPetDetectionWorker::askGemini(const std::vector<uint8_t>& imageBuffer) {
             std::string movementType =
                 parsedData["movementType"].get<std::string>();
             float movementValue = parsedData["movementValue"].get<float>();
+            std::string movementReason =
+                parsedData["movementReason"].get<std::string>();
 
             std::cout << "Movement Type: " << movementType << std::endl;
             std::cout << "Movement Value: " << movementValue << std::endl;
+            std::cout << "Movement Reason: " << movementReason << std::endl;
 
             MovementType moveEnum = MovementType::Stop;
-            if (movementType == "forward")
+            if (movementType == "forward") {
+                std::cout << "forward" << std::endl;
                 moveEnum = MovementType::Forward;
-            else if (movementType == "backward")
+            } else if (movementType == "backward") {
+                std::cout << "backward" << std::endl;
                 moveEnum = MovementType::Backward;
-            else if (movementType == "left")
+            } else if (movementType == "left") {
+                std::cout << "left" << std::endl;
                 moveEnum = MovementType::Left;
-            else if (movementType == "right")
+            } else if (movementType == "right") {
+                std::cout << "right" << std::endl;
                 moveEnum = MovementType::Right;
+            } else if (movementType == "stop") {
+                std::cout << "stop" << std::endl;
+                moveEnum = MovementType::Stop;
+            }
 
             LLMInputData llmCommand;
             llmCommand.type = moveEnum;
@@ -244,6 +258,8 @@ LLMPetDetectionWorker::askGemini(const std::vector<uint8_t>& imageBuffer) {
 
             auto sensorData = std::make_shared<SensorData>();
             sensorData->llmInput = llmCommand;
+
+            dispatcher_->enqueueData(sensorData);
 
             // if (detectedText == "Dog") {
             //     if (!image->detectedObjects.has_value())

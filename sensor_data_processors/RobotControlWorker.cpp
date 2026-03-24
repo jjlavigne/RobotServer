@@ -1,5 +1,6 @@
 #include "RobotControlWorker.h"
 #include <arpa/inet.h>
+#include <chrono>
 #include <cstring>
 #include <iostream>
 #include <sys/socket.h>
@@ -13,7 +14,7 @@ RobotControlWorker::RobotControlWorker()
     : queue_(folly::ProducerConsumerQueue<std::shared_ptr<SensorData>>(100)) {}
 
 void RobotControlWorker::enqueue(std::shared_ptr<SensorData> data) {
-    if (!data->userInput.has_value()) {
+    if (!data->userInput.has_value() && !data->llmInput.has_value()) {
         return;
     }
     queue_.write(data);
@@ -33,8 +34,10 @@ void RobotControlWorker::start() {
     while (isRunning_) {
         // std::cout << "RCW while IsRunning Entered" << std::endl;
         if (!queue_.isEmpty()) {
+            std::cout << "queue not empty" << std::endl;
             std::shared_ptr<SensorData> sensorData;
             if (queue_.read(sensorData)) {
+                std::cout << "queue read" << std::endl;
                 process(sensorData);
             } else {
             }
@@ -52,13 +55,16 @@ void RobotControlWorker::process(std::shared_ptr<SensorData> data) {
     // if w pressed down, then convert that to sensordata for forward 1 ft
     // if D pressed down,
 
+    std::cout << "RCW process" << std::endl;
+
     if (data->userInput.has_value()) {
         processUserInput(data);
     }
 
-    // if (data->LLMInput.has_value()) {
-    //     processLLMInput();
-    // }
+    if (data->llmInput.has_value()) {
+        std::cout << "hasvalue" << std::endl;
+        processLLMInput(data);
+    }
 }
 
 void RobotControlWorker::processUserInput(std::shared_ptr<SensorData> data) {
@@ -91,9 +97,47 @@ void RobotControlWorker::processUserInput(std::shared_ptr<SensorData> data) {
 void RobotControlWorker::processLLMInput(std::shared_ptr<SensorData> data) {
     // read data, find out which movement to take
     // loop for amount of time to do that movement
-}
+    std::cout << "LLM process called" << std::endl;
 
+    int timeToGoHalfFootMs = 940;
+    int timeToGo45DegreesMs = 600;
+    int sleepTime = 0;
+
+    if (data->llmInput.has_value()) {
+
+        std::cout << "LLMInput has value" << std::endl;
+
+        if (data->llmInput->type == MovementType::Forward) {
+            sleepTime = ((data->llmInput->value) / 0.5) * timeToGoHalfFootMs;
+            sendUDP("MOTOR, FORWARD");
+            // std::this_thread::sleep_for(std::chrono::milliseconds(sleepTime));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            sendUDP("MOTOR, STOP");
+        } else if (data->llmInput->type == MovementType::Backward) {
+            sleepTime = ((data->llmInput->value) / 0.5) * timeToGoHalfFootMs;
+            sendUDP("MOTOR, BACKWARD");
+            // std::this_thread::sleep_for(std::chrono::milliseconds(sleepTime));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            sendUDP("MOTOR, STOP");
+        } else if (data->llmInput->type == MovementType::Left) {
+            sendUDP("MOTOR, LEFT");
+            sleepTime = ((data->llmInput->value) / 45) * timeToGo45DegreesMs;
+            // std::this_thread::sleep_for(std::chrono::milliseconds(sleepTime));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            sendUDP("MOTOR, STOP");
+        } else if (data->llmInput->type == MovementType::Right) {
+            sleepTime = ((data->llmInput->value) / 45) * timeToGo45DegreesMs;
+            sendUDP("MOTOR, RIGHT");
+            // std::this_thread::sleep_for(std::chrono::milliseconds(sleepTime));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            sendUDP("MOTOR, STOP");
+        } else if (data->llmInput->type == MovementType::Stop) {
+            sendUDP("MOTOR, STOP");
+        }
+    }
+}
 void RobotControlWorker::sendUDP(const char* message) {
+    std::cout << "sendUdp: " << message << std::endl;
     sendto(arduinoSocket_, message, strlen(message), 0,
            (struct sockaddr*)&arduinoAddr_, sizeof(arduinoAddr_));
 }
