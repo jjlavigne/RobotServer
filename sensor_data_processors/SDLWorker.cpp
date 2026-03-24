@@ -74,14 +74,14 @@ void SDLWorker::start() {
                  "to quit."
               << std::endl;
 
-    auto sensorData = std::make_shared<SensorData>();
+    auto inputData = std::make_shared<SensorData>();
 
-    sensorData->userInput = UserInputData();
+    inputData->userInput = UserInputData();
 
-    sensorData->userInput.value().forward = false;
-    sensorData->userInput.value().backward = false;
-    sensorData->userInput.value().left = false;
-    sensorData->userInput.value().right = false;
+    inputData->userInput.value().forward = false;
+    inputData->userInput.value().backward = false;
+    inputData->userInput.value().left = false;
+    inputData->userInput.value().right = false;
 
     isRunning = true;
 
@@ -95,22 +95,25 @@ void SDLWorker::start() {
         // PHASE 1: INPUT (Process all pending events)
         // ==========================================
         while (SDL_PollEvent(&event) != 0) {
-
             // Handle Key Pressed Down
             if (event.type == SDL_KEYDOWN) {
                 if (event.key.repeat == 0) {
                     switch (event.key.keysym.sym) {
                     case SDLK_w:
-                        sensorData->userInput.value().forward = true;
+                        inputData->userInput.value().forward = true;
+                        dispatcher_->enqueueData(inputData);
                         break;
                     case SDLK_a:
-                        sensorData->userInput.value().left = true;
+                        inputData->userInput.value().left = true;
+                        dispatcher_->enqueueData(inputData);
                         break;
                     case SDLK_s:
-                        sensorData->userInput.value().backward = true;
+                        inputData->userInput.value().backward = true;
+                        dispatcher_->enqueueData(inputData);
                         break;
                     case SDLK_d:
-                        sensorData->userInput.value().right = true;
+                        inputData->userInput.value().right = true;
+                        dispatcher_->enqueueData(inputData);
                         break;
                     case SDLK_ESCAPE:
                         isRunning = false;
@@ -122,16 +125,20 @@ void SDLWorker::start() {
             else if (event.type == SDL_KEYUP) {
                 switch (event.key.keysym.sym) {
                 case SDLK_w:
-                    sensorData->userInput.value().forward = false;
+                    inputData->userInput.value().forward = false;
+                    dispatcher_->enqueueData(inputData);
                     break;
                 case SDLK_a:
-                    sensorData->userInput.value().left = false;
+                    inputData->userInput.value().left = false;
+                    dispatcher_->enqueueData(inputData);
                     break;
                 case SDLK_s:
-                    sensorData->userInput.value().backward = false;
+                    inputData->userInput.value().backward = false;
+                    dispatcher_->enqueueData(inputData);
                     break;
                 case SDLK_d:
-                    sensorData->userInput.value().right = false;
+                    inputData->userInput.value().right = false;
+                    dispatcher_->enqueueData(inputData);
                     break;
                 }
             }
@@ -140,8 +147,6 @@ void SDLWorker::start() {
                 isRunning = false;
             }
         } // <--- IMPORTANT: The event loop MUST close here!
-
-        dispatcher_->enqueueData(sensorData);
 
         // ==========================================
         // PHASE 3: RENDER (Draw the current frame)
@@ -152,10 +157,8 @@ void SDLWorker::start() {
         std::shared_ptr<SensorData> currentData;
         {
             if (!queue_.isEmpty()) {
-                std::shared_ptr<SensorData> sensorData;
-                if (queue_.read(sensorData)) {
-                    currentData = sensorData;
-                    latestData_ = sensorData;
+                if (queue_.read(currentData)) {
+                    latestData_ = currentData;
                 }
             } else {
                 currentData = latestData_;

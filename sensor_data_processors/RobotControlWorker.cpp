@@ -6,7 +6,7 @@
 #include <thread>
 #include <unistd.h>
 
-const char* ARDUINO_IP = "192.168.4.25";
+const char* ARDUINO_IP = "192.168.4.40";
 const int ARDUINO_PORT = 4210;
 
 RobotControlWorker::RobotControlWorker()
@@ -48,6 +48,10 @@ void RobotControlWorker::start() {
 void RobotControlWorker::stop() { isRunning_ = false; }
 
 void RobotControlWorker::process(std::shared_ptr<SensorData> data) {
+    // hijack user input to convert to llm input
+    // if w pressed down, then convert that to sensordata for forward 1 ft
+    // if D pressed down,
+
     if (data->userInput.has_value()) {
         processUserInput(data);
     }
@@ -68,18 +72,26 @@ void RobotControlWorker::processUserInput(std::shared_ptr<SensorData> data) {
     // but this logic still fires every single frame the key is held!
     if (forwardKeyPressed) {
         sendUDP("MOTOR, FORWARD");
+        std::cout << "Motor forward sent" << std::endl;
     } else if (backwardKeyPressed) {
         sendUDP("MOTOR, BACKWARD");
+        std::cout << "Motor backward sent" << std::endl;
     } else if (leftKeyPressed) {
         sendUDP("MOTOR, LEFT");
+        std::cout << "Motor left sent" << std::endl;
     } else if (rightKeyPressed) {
         sendUDP("MOTOR, RIGHT");
+        std::cout << "Motor right sent" << std::endl;
     } else {
         sendUDP("MOTOR, STOP");
+        std::cout << "Motor stop sent" << std::endl;
     }
 }
 
-void RobotControlWorker::processLLMInput(std::shared_ptr<SensorData> data) {}
+void RobotControlWorker::processLLMInput(std::shared_ptr<SensorData> data) {
+    // read data, find out which movement to take
+    // loop for amount of time to do that movement
+}
 
 void RobotControlWorker::sendUDP(const char* message) {
     sendto(arduinoSocket_, message, strlen(message), 0,

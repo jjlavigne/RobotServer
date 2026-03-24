@@ -228,6 +228,33 @@ LLMPetDetectionWorker::askGemini(const std::vector<uint8_t>& imageBuffer) {
             std::cout << "Movement Type: " << movementType << std::endl;
             std::cout << "Movement Value: " << movementValue << std::endl;
 
+            MovementType moveEnum = MovementType::Stop;
+            if (movementType == "forward")
+                moveEnum = MovementType::Forward;
+            else if (movementType == "backward")
+                moveEnum = MovementType::Backward;
+            else if (movementType == "left")
+                moveEnum = MovementType::Left;
+            else if (movementType == "right")
+                moveEnum = MovementType::Right;
+
+            LLMInputData llmCommand;
+            llmCommand.type = moveEnum;
+            llmCommand.value = movementValue;
+
+            auto sensorData = std::make_shared<SensorData>();
+            sensorData->llmInput = llmCommand;
+
+            // if (detectedText == "Dog") {
+            //     if (!image->detectedObjects.has_value())
+            //         data->detectedObjects = std::vector<int>();
+            //     data->detectedObjects->push_back(static_cast<int>(Object::Dog));
+            // } else if (detectedText == "Cat") {
+            //     if (!data->detectedObjects.has_value())
+            //         data->detectedObjects = std::vector<int>();
+            //     data->detectedObjects->push_back(static_cast<int>(Object::Cat));
+            // }
+
         } catch (const std::exception& e) {
             std::cerr << "[LLM ERROR] Parsing failed: " << e.what()
                       << std::endl;

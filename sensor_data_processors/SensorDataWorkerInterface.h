@@ -14,11 +14,11 @@ struct UserInputData {
     bool right = false;
 };
 
+enum class MovementType { Forward, Backward, Left, Right, Stop };
+
 struct LLMInputData {
-    bool forward = false;
-    bool backward = false;
-    bool left = false;
-    bool right = false;
+    MovementType type;
+    float value;
 };
 
 struct ShapeData {

@@ -16,7 +16,7 @@ class LLMPetDetectionWorker : public SensorDataWorkerInterface {
     void start() override;
     void stop() override;
     void process(std::shared_ptr<SensorData> data) override;
-    void enqueue(std::shared_ptr<SensorData> ddata) override;
+    void enqueue(std::shared_ptr<SensorData> data) override;
 
   private:
     std::optional<Object> askGemini(const std::vector<uint8_t>& imageBuffer);
