@@ -7,7 +7,7 @@
 #include <thread>
 #include <unistd.h>
 
-const char* ARDUINO_IP = "192.168.4.40";
+const char* ARDUINO_IP = "192.168.4.46";
 const int ARDUINO_PORT = 4210;
 
 RobotControlWorker::RobotControlWorker()
