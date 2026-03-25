@@ -7,7 +7,7 @@
 #include <thread>
 #include <unistd.h>
 
-const char* ARDUINO_IP = "192.168.4.46";
+const char* ARDUINO_IP;
 const int ARDUINO_PORT = 4210;
 
 RobotControlWorker::RobotControlWorker()
@@ -21,9 +21,60 @@ void RobotControlWorker::enqueue(std::shared_ptr<SensorData> data) {
 }
 
 void RobotControlWorker::start() {
+
+    int tcp_server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (tcp_server_socket < 0) {
+        std::cerr << "Error creating TCP socket" << std::endl;
+        return;
+    }
+
+    int opt = 1;
+    setsockopt(tcp_server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+    struct sockaddr_in tcp_addr;
+    memset(&tcp_addr, 0, sizeof(tcp_addr));
+    tcp_addr.sin_family = AF_INET;
+    tcp_addr.sin_addr.s_addr = INADDR_ANY;
+    tcp_addr.sin_port = htons(5005);
+
+    if (bind(tcp_server_socket, (struct sockaddr*)&tcp_addr, sizeof(tcp_addr)) <
+        0) {
+        std::cerr << "TCP bind failed. Port 5005 might be in use." << std::endl;
+        close(tcp_server_socket);
+        return;
+    }
+
+    listen(tcp_server_socket, 1);
+    std::cout << "Waiting for Arduino to connect via TCP on port 5005..."
+              << std::endl;
+
+    // The code will completely PAUSE on this next line until the Arduino powers
+    // on
+    struct sockaddr_in esp_addr;
+    socklen_t esp_len = sizeof(esp_addr);
+    int esp_client_socket =
+        accept(tcp_server_socket, (struct sockaddr*)&esp_addr, &esp_len);
+
+    if (esp_client_socket >= 0) {
+        char buffer[1024] = {0};
+        int bytes_read = read(esp_client_socket, buffer, sizeof(buffer) - 1);
+
+        if (bytes_read > 0) {
+            std::cout << "\n--- Handshake Successful ---" << std::endl;
+            std::cout << "Arduino IP address: " << buffer;
+            std::cout << "----------------------------\n" << std::endl;
+            ARDUINO_IP = buffer;
+        }
+
+        close(esp_client_socket); // Hang up the client connection
+    }
+    close(tcp_server_socket); // Stop listening on TCP completely
+
+    // UDP Call
+
     arduinoSocket_ = socket(AF_INET, SOCK_DGRAM, 0);
     if (arduinoSocket_ < 0) {
-        std::cerr << "Error creating socket" << std::endl;
+        std::cerr << "Error creating UDP socket" << std::endl;
         return;
     }
     arduinoAddr_.sin_family = AF_INET;
@@ -37,7 +88,6 @@ void RobotControlWorker::start() {
             std::cout << "queue not empty" << std::endl;
             std::shared_ptr<SensorData> sensorData;
             if (queue_.read(sensorData)) {
-                std::cout << "queue read" << std::endl;
                 process(sensorData);
             } else {
             }
@@ -51,9 +101,6 @@ void RobotControlWorker::start() {
 void RobotControlWorker::stop() { isRunning_ = false; }
 
 void RobotControlWorker::process(std::shared_ptr<SensorData> data) {
-    // hijack user input to convert to llm input
-    // if w pressed down, then convert that to sensordata for forward 1 ft
-    // if D pressed down,
 
     std::cout << "RCW process" << std::endl;
 
