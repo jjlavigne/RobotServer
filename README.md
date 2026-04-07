@@ -29,7 +29,7 @@ I pivoted to sending the UDP frames to a Vision-Language Model (LLM) with a cust
 
 **Result:** Detection accuracy and speed significantly increased.
 
-**Next Step:** I attempted to make the LLM the "brain" of the robot, feeding it frames and having it send drive commands to the ESP32 and print out its reasoning behind its decisions.
+**Next Step:** I attempted to make the LLM the "brain" of the robot, feeding it frames and having it send drive commands to the ESP32.
 
 **Challenge:** The LLM lacked spatial memory, resulting in erratic movements. I engineered a manual memory system by passing a vector of historical frames and printing the LLM's reasoning to debug its logic, but it still lacked true spatial awareness.
 
